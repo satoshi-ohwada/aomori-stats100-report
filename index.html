@@ -40,7 +40,7 @@
   <main class="app-container">
     
     <!-- Sidebar / Indicator Selection -->
-    <aside class="sidebar">
+    <aside id="app-sidebar" class="sidebar">
       
       <!-- Section 1: Indicator Selection -->
       <div class="sidebar-section">
@@ -151,27 +151,47 @@
     <!-- Main Map & Floating Panels Area -->
     <section class="content-area">
       
-      <!-- Top Status Bar -->
+      <!-- Compact Status Bar on Map -->
       <div class="map-status-bar">
-        <div class="active-var-title">
-          <span id="active-var-title-text">人口（人）</span>
-          <span id="active-var-unit-pill" class="unit-pill">単位: 人</span>
+        <div class="status-left">
+          <button id="btn-toggle-sidebar" class="btn-sidebar-toggle" title="サイドバーを開閉して地図を最大化">
+            <i class="fa-solid fa-bars"></i>
+          </button>
+          <div class="active-var-title">
+            <span id="active-var-title-text">人口（人）</span>
+            <span id="active-var-unit-pill" class="unit-pill">単位: 人</span>
+          </div>
         </div>
-        <div style="font-size:0.75rem; color:#64748b;">
-          ※各市町村にマウスを当てると数値・順位が表示されます
+        
+        <div class="status-right">
+          <!-- Summary Toggle Button (指定した時だけ表示) -->
+          <button id="btn-toggle-summary" class="btn-toggle-summary" title="全県統計サマリーと順位を表示/非表示">
+            <i class="fa-solid fa-chart-simple"></i>
+            <span>統計サマリー</span>
+          </button>
         </div>
       </div>
 
-      <!-- Leaflet Map Container -->
+      <!-- Leaflet Map Container (Maximized) -->
       <div id="map-view"></div>
 
-      <!-- Floating Stats & Ranking Panel -->
-      <div class="floating-side-panel">
+      <!-- Floating Stats & Ranking Panel (Hidden by default, shown on demand) -->
+      <div id="floating-summary-panel" class="floating-side-panel hidden">
         
+        <div class="panel-header-row">
+          <div class="panel-header-title">
+            <i class="fa-solid fa-chart-pie" style="color:var(--primary);"></i>
+            <span>全県統計サマリー＆順位</span>
+          </div>
+          <button id="btn-close-summary" class="panel-close-btn" title="閉じる">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
         <!-- Summary Stats Block -->
         <div class="panel-block">
           <div class="panel-block-title">
-            <span>全県統計サマリー</span>
+            <span>基本統計</span>
             <span style="font-size:0.68rem; font-weight:normal; color:#94a3b8;">40市町村</span>
           </div>
           <div class="stat-grid-mini">

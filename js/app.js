@@ -172,10 +172,8 @@ function computeStats(varItem) {
     };
   }
 
-  // 降順ソート（1位が最大）
   entries.sort((a, b) => b.val - a.val);
 
-  // 順位付け
   const ranks = {};
   entries.forEach((item, idx) => {
     ranks[item.muni] = idx + 1;
@@ -255,8 +253,8 @@ function initLeafletMap() {
   const map = L.map("map-view", {
     center: [40.78, 140.75],
     zoom: 9,
-    minZoom: 8,
-    maxZoom: 14,
+    minZoom: 7,
+    maxZoom: 15,
     zoomControl: false,
     attributionControl: false
   });
@@ -272,6 +270,18 @@ function initLeafletMap() {
   };
   legend.addTo(map);
   state.legendControl = legend;
+}
+
+// 地図を領域いっぱいに最大拡大表示する
+function fitMapToContainer() {
+  if (!state.leafletMap || !state.geoJsonLayer) return;
+  state.leafletMap.invalidateSize();
+  const bounds = state.geoJsonLayer.getBounds();
+  // パディングを最小限 [6, 6] にして領域いっぱいに最大表示
+  state.leafletMap.fitBounds(bounds, {
+    padding: [6, 6],
+    animate: false
+  });
 }
 
 function updateLeafletMap() {
@@ -294,7 +304,7 @@ function updateLeafletMap() {
     state.outerBorderLayer = null;
   }
 
-  // 1. 各市町村ポリゴンの描画（元のツールと同一の境界線スタイル）
+  // 1. 各市町村ポリゴンの描画
   state.geoJsonLayer = L.geoJSON(AOMORI_GEOJSON, {
     style: function(feature) {
       const muniName = feature.properties.name;
@@ -348,7 +358,7 @@ function updateLeafletMap() {
     }
   }).addTo(state.leafletMap);
 
-  // 2. 外周県境境界線の描画（元のツールと同一の外周輪郭レイヤー）
+  // 2. 外周県境境界線の描画
   const outerGeoJSON = getOuterBorderGeoJSON(AOMORI_GEOJSON);
   if (outerGeoJSON) {
     state.outerBorderLayer = L.geoJSON(outerGeoJSON, {
@@ -362,15 +372,12 @@ function updateLeafletMap() {
     }).addTo(state.leafletMap);
   }
 
-  // 初回のみ表示領域にフィット
+  // 領域いっぱいに最大表示
   if (!state.mapFitted) {
-    state.leafletMap.fitBounds(state.geoJsonLayer.getBounds(), {
-      padding: [20, 20]
-    });
+    fitMapToContainer();
     state.mapFitted = true;
   }
 
-  // 凡例の更新
   updateLegendUI(breaks, currentVar.unit);
 }
 
@@ -393,7 +400,7 @@ function updateLegendUI(breaks, unit) {
     `;
   }
   html += `
-    <div class="legend-row" style="margin-top:4px; padding-top:4px; border-top:1px dashed #e2e8f0; color:#64748b;">
+    <div class="legend-row" style="margin-top:3px; padding-top:3px; border-top:1px dashed #e2e8f0; color:#64748b;">
       <div class="legend-color-box" style="background:#e2e8f0; border-color:#94a3b8;"></div>
       <span>データなし</span>
     </div>
@@ -444,6 +451,48 @@ function initUI() {
     });
   });
 
+  // サマリーパネルの表示切り替え（指定した時だけ表示）
+  const btnToggleSummary = document.getElementById("btn-toggle-summary");
+  const summaryPanel = document.getElementById("floating-summary-panel");
+  const btnCloseSummary = document.getElementById("btn-close-summary");
+
+  function toggleSummary() {
+    if (!summaryPanel) return;
+    const isHidden = summaryPanel.classList.toggle("hidden");
+    if (btnToggleSummary) {
+      btnToggleSummary.classList.toggle("active", !isHidden);
+    }
+  }
+
+  if (btnToggleSummary) {
+    btnToggleSummary.addEventListener("click", toggleSummary);
+  }
+
+  if (btnCloseSummary) {
+    btnCloseSummary.addEventListener("click", () => {
+      if (summaryPanel) summaryPanel.classList.add("hidden");
+      if (btnToggleSummary) btnToggleSummary.classList.remove("active");
+    });
+  }
+
+  // サイドバーの開閉トグル（地図を画面幅いっぱいに最大化）
+  const btnToggleSidebar = document.getElementById("btn-toggle-sidebar");
+  const appSidebar = document.getElementById("app-sidebar");
+  if (btnToggleSidebar && appSidebar) {
+    btnToggleSidebar.addEventListener("click", () => {
+      appSidebar.classList.toggle("collapsed");
+      setTimeout(() => {
+        fitMapToContainer();
+      }, 260);
+    });
+  }
+
+  // ウィンドウリサイズ時に地図を常に最大フィット
+  window.addEventListener("resize", () => {
+    fitMapToContainer();
+  });
+
+  // レポートモーダル関連
   const btnOpenReport = document.getElementById("btn-open-report");
   const modalOverlay = document.getElementById("report-modal");
   const btnCloseReport = document.getElementById("btn-close-report");
@@ -576,7 +625,7 @@ function renderReportSvgMap(varItem, breaks, paletteKey) {
 
   const svgW = 540;
   const svgH = 390;
-  const pad = 12;
+  const pad = 10;
 
   function latToY(lat) {
     const latRad = (lat * Math.PI) / 180;
@@ -595,7 +644,7 @@ function renderReportSvgMap(varItem, breaks, paletteKey) {
 
   let pathsHtml = "";
 
-  // 1. 各市町村ポリゴン（境界線: #334155, 1.2px）
+  // 1. 各市町村ポリゴン
   AOMORI_GEOJSON.features.forEach(feat => {
     const muniName = feat.properties.name;
     const val = varItem.data[muniName];
@@ -630,7 +679,7 @@ function renderReportSvgMap(varItem, breaks, paletteKey) {
     pathsHtml += `<path d="${pathD}" fill="${fillColor}" stroke="${strokeInfo.color}" stroke-width="${(strokeInfo.weight * 0.8).toFixed(1)}" stroke-opacity="0.9" stroke-linejoin="round" />`;
   });
 
-  // 2. 外周県境境界線（#0f172a, 2.2px）
+  // 2. 外周県境境界線
   const outerGeo = getOuterBorderGeoJSON(AOMORI_GEOJSON);
   let outerPathD = "";
   if (outerGeo && outerGeo.features && outerGeo.features[0]) {
