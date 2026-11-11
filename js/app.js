@@ -88,8 +88,55 @@ const state = {
   geoJsonLayer: null,
   outerBorderLayer: null,
   legendControl: null,
+  showLabels: false,       // 市町村名・数値ラベル表示フラグ
+  labelMarkersLayer: null, // 市町村名・数値マーカー用レイヤーグループ
   currentBreaks: [],
   currentStats: null
+};
+
+// 青森県40市町村 ラベル表示用代表座標（経度, 緯度）
+// 各市町村ポリゴン内部かつ密集地域（弘前周辺・八戸周辺・三八上北・下北）での衝突を回避した最適化座標
+const MUNI_LABEL_COORDS = {
+  "青森市": [140.7542, 40.8000],
+  "弘前市": [140.4200, 40.6000],
+  "八戸市": [141.4900, 40.5100],
+  "黒石市": [140.6400, 40.6450],
+  "五所川原市": [140.4400, 40.8100],
+  "十和田市": [141.0800, 40.6150],
+  "三沢市": [141.3680, 40.6800],
+  "むつ市": [141.1800, 41.2850],
+  "つがる市": [140.3500, 40.8100],
+  "平川市": [140.6000, 40.5800],
+  "平内町": [140.9563, 40.9076],
+  "今別町": [140.5100, 41.1550],
+  "蓬田村": [140.6300, 40.9900],
+  "外ヶ浜町": [140.6300, 41.0450],
+  "鰺ヶ沢町": [140.2100, 40.7600],
+  "深浦町": [140.0000, 40.6500],
+  "西目屋村": [140.2370, 40.5500],
+  "藤崎町": [140.5000, 40.6850],
+  "大鰐町": [140.5700, 40.5200],
+  "田舎館村": [140.5600, 40.6300],
+  "板柳町": [140.4500, 40.7150],
+  "鶴田町": [140.4212, 40.7565],
+  "中泊町": [140.4400, 40.9650],
+  "野辺地町": [141.1300, 40.8650],
+  "七戸町": [141.1500, 40.7000],
+  "六戸町": [141.2900, 40.6276],
+  "横浜町": [141.2850, 41.0670],
+  "東北町": [141.2347, 40.7955],
+  "六ヶ所村": [141.3500, 40.9600],
+  "おいらせ町": [141.4250, 40.6150],
+  "大間町": [140.9100, 41.5200],
+  "東通村": [141.3800, 41.2500],
+  "風間浦村": [141.0300, 41.4350],
+  "佐井村": [140.8552, 41.4000],
+  "三戸町": [141.2500, 40.3771],
+  "五戸町": [141.3100, 40.5250],
+  "田子町": [141.0499, 40.3350],
+  "南部町": [141.3471, 40.4450],
+  "階上町": [141.6000, 40.4400],
+  "新郷村": [141.1076, 40.4473]
 };
 
 // 実効データの取得（実測値 or 人口1,000人あたり）
@@ -588,6 +635,71 @@ function updateLeafletMap() {
   fitMapToContainer();
 
   updateLegendUI(breaks, effective.unit);
+
+  // 市町村名・数値ラベルの更新
+  renderMapLabels();
+}
+
+// 地図上ラベルの表示/非表示切替
+function toggleMapLabels(show) {
+  state.showLabels = show;
+  const chkMap = document.getElementById("chk-show-labels");
+  const chkSide = document.getElementById("chk-show-labels-sidebar");
+  const lblMap = document.getElementById("lbl-toggle-labels");
+  const cardSide = document.getElementById("sidebar-toggle-card");
+
+  if (chkMap) chkMap.checked = show;
+  if (chkSide) chkSide.checked = show;
+  if (lblMap) lblMap.classList.toggle("active", show);
+  if (cardSide) cardSide.classList.toggle("active", show);
+
+  renderMapLabels();
+}
+
+// 地図上ラベルの描画（各自治体ポリゴン内の最適位置に市町村名＋数値を表示）
+function renderMapLabels() {
+  if (!state.leafletMap) return;
+
+  if (state.labelMarkersLayer) {
+    state.leafletMap.removeLayer(state.labelMarkersLayer);
+    state.labelMarkersLayer = null;
+  }
+
+  if (!state.showLabels) return;
+
+  const currentVar = STATS_DATA.find(v => v.id === state.activeVarId);
+  if (!currentVar) return;
+  const effective = getEffectiveData(currentVar);
+
+  const markers = [];
+  Object.keys(MUNI_LABEL_COORDS).forEach(muniName => {
+    const coords = MUNI_LABEL_COORDS[muniName];
+    const val = effective.data[muniName];
+    const valStr = val !== null && val !== undefined ? formatNum(val) : "-";
+
+    const html = `
+      <div class="map-label-content">
+        <div class="muni-name">${muniName}</div>
+        <div class="muni-val">${valStr}</div>
+      </div>
+    `;
+
+    const icon = L.divIcon({
+      className: "map-muni-label-marker",
+      html: html,
+      iconSize: [0, 0],
+      iconAnchor: [0, 0]
+    });
+
+    const marker = L.marker([coords[1], coords[0]], {
+      icon: icon,
+      interactive: false,
+      keyboard: false
+    });
+    markers.push(marker);
+  });
+
+  state.labelMarkersLayer = L.layerGroup(markers).addTo(state.leafletMap);
 }
 
 // 凡例用ラベルフォーマッタ（キリの良い自然な区分表記: 〜 N / A 〜 B / N 〜）
@@ -710,6 +822,21 @@ function initUI() {
       updateInfoPanels();
     });
   });
+
+  // 市町村名・数値ラベルの表示切り替えチェックボックス
+  const chkShowLabels = document.getElementById("chk-show-labels");
+  const chkShowLabelsSidebar = document.getElementById("chk-show-labels-sidebar");
+
+  if (chkShowLabels) {
+    chkShowLabels.addEventListener("change", e => {
+      toggleMapLabels(e.target.checked);
+    });
+  }
+  if (chkShowLabelsSidebar) {
+    chkShowLabelsSidebar.addEventListener("change", e => {
+      toggleMapLabels(e.target.checked);
+    });
+  }
 
   // サマリーパネルの表示切り替え（指定した時だけ表示）
   const btnToggleSummary = document.getElementById("btn-toggle-summary");
@@ -1063,10 +1190,29 @@ function renderReportSvgMap(varItem, breaks, paletteKey) {
 
   const outerSvg = outerPathD ? `<path d="${outerPathD}" fill="none" stroke="#0f172a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />` : "";
 
+  // 3. 市町村名・数値ラベル（チェックボックスON時）
+  let labelsSvg = "";
+  if (state.showLabels) {
+    Object.keys(MUNI_LABEL_COORDS).forEach(muniName => {
+      const coord = MUNI_LABEL_COORDS[muniName];
+      const pt = project(coord[0], coord[1]);
+      const val = effective.data[muniName];
+      const valStr = val !== null && val !== undefined ? formatNum(val) : "-";
+      labelsSvg += `
+        <g transform="translate(${pt[0].toFixed(1)}, ${pt[1].toFixed(1)})" pointer-events="none">
+          <rect x="-19" y="-9.5" width="38" height="19" rx="2.5" ry="2.5" fill="#ffffff" fill-opacity="0.90" stroke="#0f172a" stroke-width="0.5" stroke-opacity="0.25"/>
+          <text x="0" y="-1.5" text-anchor="middle" font-size="5.8" font-weight="600" fill="#334155">${muniName}</text>
+          <text x="0" y="6.5" text-anchor="middle" font-size="6.6" font-weight="700" fill="#0f172a">${valStr}</text>
+        </g>
+      `;
+    });
+  }
+
   return `
     <svg viewBox="0 0 ${svgW.toFixed(1)} ${svgH.toFixed(1)}" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" style="display:block; background:#ffffff;">
       <g>${pathsHtml}</g>
       <g>${outerSvg}</g>
+      <g>${labelsSvg}</g>
     </svg>
   `;
 }

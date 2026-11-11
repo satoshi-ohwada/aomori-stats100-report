@@ -171,11 +171,27 @@
         </div>
       </div>
 
-      <!-- Section 4: Print Action Guide -->
+      <!-- Section 4: Map Label Display Options -->
+      <div class="sidebar-section">
+        <div class="section-label">
+          <i class="fa-solid fa-tags"></i>
+          <span>4. 地図ラベル表示</span>
+        </div>
+        <label id="sidebar-toggle-card" class="sidebar-toggle-card" title="市町村名と数値を地図上に直接表示/非表示">
+          <input type="checkbox" id="chk-show-labels-sidebar">
+          <span class="custom-chk"><i class="fa-solid fa-check"></i></span>
+          <div class="toggle-desc">
+            <span class="desc-title">市町村名・数値を表示</span>
+            <span class="desc-sub">全40自治体の名称と統計値を地図上に表示</span>
+          </div>
+        </label>
+      </div>
+
+      <!-- Section 5: Print Action Guide -->
       <div class="sidebar-section" style="border-bottom:none;">
         <div class="section-label">
           <i class="fa-solid fa-file-lines"></i>
-          <span>4. レポート印刷</span>
+          <span>5. レポート印刷</span>
         </div>
         <p style="font-size:0.8rem; color:#64748b; margin-bottom:12px;">
           現在の作図結果、全県統計、上位・下位ランキングが自動レイアウトされたA4レポートを印刷・PDF保存できます。
@@ -208,6 +224,13 @@
       
       <!-- Floating Actions on Top-Right -->
       <div class="map-floating-actions">
+        <!-- 市町村名・数値 表示切替チェックボックス -->
+        <label id="lbl-toggle-labels" class="map-floating-toggle" title="市町村名と数値を地図上に直接表示/非表示">
+          <input type="checkbox" id="chk-show-labels">
+          <span class="custom-chk"><i class="fa-solid fa-check"></i></span>
+          <span class="toggle-text"><i class="fa-solid fa-tags"></i> 市町村名・数値</span>
+        </label>
+
         <button id="btn-toggle-summary" class="btn-toggle-summary" title="全県統計サマリーと順位を表示/非表示">
           <i class="fa-solid fa-chart-simple"></i>
           <span>統計サマリー</span>

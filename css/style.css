@@ -641,6 +641,106 @@ body {
   gap: 8px;
 }
 
+/* Floating Checkbox Toggle (市町村名・数値) */
+.map-floating-toggle {
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(203, 213, 225, 0.9);
+  border-radius: var(--radius-md);
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.map-floating-toggle:hover {
+  background: #ffffff;
+  border-color: #94a3b8;
+  color: var(--primary);
+}
+
+.map-floating-toggle.active {
+  background: #eff6ff;
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.map-floating-toggle input[type="checkbox"],
+.sidebar-toggle-card input[type="checkbox"] {
+  display: none;
+}
+
+.custom-chk {
+  width: 15px;
+  height: 15px;
+  border: 1.5px solid #94a3b8;
+  border-radius: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  transition: all 0.15s ease;
+  font-size: 0.6rem;
+  color: transparent;
+  flex-shrink: 0;
+}
+
+.map-floating-toggle.active .custom-chk,
+.sidebar-toggle-card.active .custom-chk {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #ffffff;
+}
+
+/* Sidebar Map Label Card */
+.sidebar-toggle-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f8fafc;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s ease;
+}
+
+.sidebar-toggle-card:hover {
+  background: #ffffff;
+  border-color: #cbd5e1;
+}
+
+.sidebar-toggle-card.active {
+  background: #eff6ff;
+  border-color: var(--primary);
+}
+
+.sidebar-toggle-card .desc-title {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.sidebar-toggle-card.active .desc-title {
+  color: var(--primary);
+}
+
+.sidebar-toggle-card .desc-sub {
+  display: block;
+  font-size: 0.68rem;
+  color: #64748b;
+  margin-top: 1px;
+}
+
 /* Toggle Summary Button */
 .btn-toggle-summary {
   background: rgba(255, 255, 255, 0.94);
@@ -842,6 +942,48 @@ body {
   font-size: 0.7rem;
   color: #64748b;
   margin-top: 1px;
+}
+
+/* ==========================================================================
+   Map Municipality Labels (市町村名・数値の地図上コンパクト表示)
+   ========================================================================== */
+.map-muni-label-marker {
+  background: transparent !important;
+  border: none !important;
+  pointer-events: none !important;
+}
+
+.map-label-content {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 255, 255, 0.90);
+  backdrop-filter: blur(3px);
+  border: 1px solid rgba(15, 23, 42, 0.22);
+  border-radius: 3px;
+  padding: 1px 4px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.14);
+  white-space: nowrap;
+  pointer-events: none;
+  line-height: 1.15;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+  z-index: 450;
+}
+
+.map-label-content .muni-name {
+  font-size: 0.60rem; /* 約9.5px */
+  font-weight: 600;
+  color: #334155;
+  letter-spacing: -0.02em;
+}
+
+.map-label-content .muni-val {
+  font-size: 0.66rem; /* 約10.5px */
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.01em;
 }
 
 /* ==========================================================================
