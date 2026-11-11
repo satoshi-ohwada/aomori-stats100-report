@@ -641,38 +641,7 @@ body {
   gap: 8px;
 }
 
-/* Floating Checkbox Toggle (市町村名 / 数値) */
-.map-floating-toggle {
-  background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(203, 213, 225, 0.9);
-  border-radius: var(--radius-md);
-  padding: 5px 10px;
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: #334155;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  transition: all 0.15s ease;
-  user-select: none;
-}
-
-.map-floating-toggle:hover {
-  background: #ffffff;
-  border-color: #94a3b8;
-  color: var(--primary);
-}
-
-.map-floating-toggle.active {
-  background: #eff6ff;
-  border-color: var(--primary);
-  color: var(--primary);
-}
-
-.map-floating-toggle input[type="checkbox"],
+/* Sidebar Toggle Checkboxes */
 .sidebar-toggle-card input[type="checkbox"] {
   display: none;
 }
@@ -692,7 +661,6 @@ body {
   flex-shrink: 0;
 }
 
-.map-floating-toggle.active .custom-chk,
 .sidebar-toggle-card.active .custom-chk {
   background: var(--primary);
   border-color: var(--primary);

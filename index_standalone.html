@@ -657,38 +657,7 @@ body {
   gap: 8px;
 }
 
-/* Floating Checkbox Toggle (市町村名 / 数値) */
-.map-floating-toggle {
-  background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(203, 213, 225, 0.9);
-  border-radius: var(--radius-md);
-  padding: 5px 10px;
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: #334155;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  transition: all 0.15s ease;
-  user-select: none;
-}
-
-.map-floating-toggle:hover {
-  background: #ffffff;
-  border-color: #94a3b8;
-  color: var(--primary);
-}
-
-.map-floating-toggle.active {
-  background: #eff6ff;
-  border-color: var(--primary);
-  color: var(--primary);
-}
-
-.map-floating-toggle input[type="checkbox"],
+/* Sidebar Toggle Checkboxes */
 .sidebar-toggle-card input[type="checkbox"] {
   display: none;
 }
@@ -708,7 +677,6 @@ body {
   flex-shrink: 0;
 }
 
-.map-floating-toggle.active .custom-chk,
 .sidebar-toggle-card.active .custom-chk {
   background: var(--primary);
   border-color: var(--primary);
@@ -1848,20 +1816,6 @@ body {
       
       <!-- Floating Actions on Top-Right -->
       <div class="map-floating-actions">
-        <!-- 市町村名 表示切替チェックボックス -->
-        <label id="lbl-toggle-names" class="map-floating-toggle" title="市町村名を地図上に直接表示/非表示">
-          <input type="checkbox" id="chk-show-names">
-          <span class="custom-chk"><i class="fa-solid fa-check"></i></span>
-          <span class="toggle-text"><i class="fa-solid fa-tag"></i> 市町村名</span>
-        </label>
-
-        <!-- 数値 表示切替チェックボックス -->
-        <label id="lbl-toggle-values" class="map-floating-toggle" title="統計数値を地図上に直接表示/非表示">
-          <input type="checkbox" id="chk-show-values">
-          <span class="custom-chk"><i class="fa-solid fa-check"></i></span>
-          <span class="toggle-text"><i class="fa-solid fa-hashtag"></i> 数値</span>
-        </label>
-
         <button id="btn-toggle-summary" class="btn-toggle-summary" title="全県統計サマリーと順位を表示/非表示">
           <i class="fa-solid fa-chart-simple"></i>
           <span>統計サマリー</span>
@@ -8108,14 +8062,10 @@ function updateLeafletMap() {
 // 市町村名ラベルの表示切替
 function toggleMuniNames(show) {
   state.showMuniNames = show;
-  const chkMap = document.getElementById("chk-show-names");
   const chkSide = document.getElementById("chk-show-names-sidebar");
-  const lblMap = document.getElementById("lbl-toggle-names");
   const cardSide = document.getElementById("sidebar-toggle-names");
 
-  if (chkMap) chkMap.checked = show;
   if (chkSide) chkSide.checked = show;
-  if (lblMap) lblMap.classList.toggle("active", show);
   if (cardSide) cardSide.classList.toggle("active", show);
 
   renderMapLabels();
@@ -8124,14 +8074,10 @@ function toggleMuniNames(show) {
 // 数値ラベルの表示切替
 function toggleValues(show) {
   state.showValues = show;
-  const chkMap = document.getElementById("chk-show-values");
   const chkSide = document.getElementById("chk-show-values-sidebar");
-  const lblMap = document.getElementById("lbl-toggle-values");
   const cardSide = document.getElementById("sidebar-toggle-values");
 
-  if (chkMap) chkMap.checked = show;
   if (chkSide) chkSide.checked = show;
-  if (lblMap) lblMap.classList.toggle("active", show);
   if (cardSide) cardSide.classList.toggle("active", show);
 
   renderMapLabels();
@@ -8320,28 +8266,16 @@ function initUI() {
     });
   });
 
-  // 市町村名・数値ラベルの個別表示切り替えチェックボックス
-  const chkShowNames = document.getElementById("chk-show-names");
+  // 市町村名・数値ラベルの個別表示切り替えチェックボックス（サイドバー）
   const chkShowNamesSidebar = document.getElementById("chk-show-names-sidebar");
-  const chkShowValues = document.getElementById("chk-show-values");
   const chkShowValuesSidebar = document.getElementById("chk-show-values-sidebar");
 
-  if (chkShowNames) {
-    chkShowNames.addEventListener("change", e => {
-      toggleMuniNames(e.target.checked);
-    });
-  }
   if (chkShowNamesSidebar) {
     chkShowNamesSidebar.addEventListener("change", e => {
       toggleMuniNames(e.target.checked);
     });
   }
 
-  if (chkShowValues) {
-    chkShowValues.addEventListener("change", e => {
-      toggleValues(e.target.checked);
-    });
-  }
   if (chkShowValuesSidebar) {
     chkShowValuesSidebar.addEventListener("change", e => {
       toggleValues(e.target.checked);

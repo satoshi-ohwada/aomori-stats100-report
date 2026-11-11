@@ -645,14 +645,10 @@ function updateLeafletMap() {
 // 市町村名ラベルの表示切替
 function toggleMuniNames(show) {
   state.showMuniNames = show;
-  const chkMap = document.getElementById("chk-show-names");
   const chkSide = document.getElementById("chk-show-names-sidebar");
-  const lblMap = document.getElementById("lbl-toggle-names");
   const cardSide = document.getElementById("sidebar-toggle-names");
 
-  if (chkMap) chkMap.checked = show;
   if (chkSide) chkSide.checked = show;
-  if (lblMap) lblMap.classList.toggle("active", show);
   if (cardSide) cardSide.classList.toggle("active", show);
 
   renderMapLabels();
@@ -661,14 +657,10 @@ function toggleMuniNames(show) {
 // 数値ラベルの表示切替
 function toggleValues(show) {
   state.showValues = show;
-  const chkMap = document.getElementById("chk-show-values");
   const chkSide = document.getElementById("chk-show-values-sidebar");
-  const lblMap = document.getElementById("lbl-toggle-values");
   const cardSide = document.getElementById("sidebar-toggle-values");
 
-  if (chkMap) chkMap.checked = show;
   if (chkSide) chkSide.checked = show;
-  if (lblMap) lblMap.classList.toggle("active", show);
   if (cardSide) cardSide.classList.toggle("active", show);
 
   renderMapLabels();
@@ -857,28 +849,16 @@ function initUI() {
     });
   });
 
-  // 市町村名・数値ラベルの個別表示切り替えチェックボックス
-  const chkShowNames = document.getElementById("chk-show-names");
+  // 市町村名・数値ラベルの個別表示切り替えチェックボックス（サイドバー）
   const chkShowNamesSidebar = document.getElementById("chk-show-names-sidebar");
-  const chkShowValues = document.getElementById("chk-show-values");
   const chkShowValuesSidebar = document.getElementById("chk-show-values-sidebar");
 
-  if (chkShowNames) {
-    chkShowNames.addEventListener("change", e => {
-      toggleMuniNames(e.target.checked);
-    });
-  }
   if (chkShowNamesSidebar) {
     chkShowNamesSidebar.addEventListener("change", e => {
       toggleMuniNames(e.target.checked);
     });
   }
 
-  if (chkShowValues) {
-    chkShowValues.addEventListener("change", e => {
-      toggleValues(e.target.checked);
-    });
-  }
   if (chkShowValuesSidebar) {
     chkShowValuesSidebar.addEventListener("change", e => {
       toggleValues(e.target.checked);
