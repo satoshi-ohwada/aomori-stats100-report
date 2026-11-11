@@ -260,7 +260,7 @@
   </main>
 
   <!-- ========================================================================
-       A4 Report Preview & Print Modal
+       A4 Report Preview & Print Modal (元のツール仕様: A4 縦置き Portrait)
        ======================================================================== -->
   <div id="report-modal" class="modal-overlay hidden">
     <div class="modal-window">
@@ -269,7 +269,7 @@
       <div class="modal-header">
         <div class="modal-title">
           <i class="fa-solid fa-file-pdf" style="color:#ef4444;"></i>
-          <span>A4分析レポート 印刷プレビュー</span>
+          <span>A4分析レポート 印刷プレビュー（縦置き）</span>
         </div>
         
         <div class="modal-actions">
@@ -294,10 +294,10 @@
         </div>
       </div>
 
-      <!-- Modal Body (A4 Paper Sheet View) -->
+      <!-- Modal Body (A4 Paper Sheet View: Portrait) -->
       <div class="modal-body">
         
-        <!-- A4 Sheet (Landscape: 297mm x 210mm) -->
+        <!-- A4 Sheet (Portrait: 210mm x 297mm) -->
         <div id="report-sheet">
           
           <!-- Report Header -->
@@ -306,7 +306,7 @@
               <h1>青森県 市町村データ分析レポート</h1>
               <div class="rep-sub">
                 <strong id="rep-target-var-name" style="font-size:1.05rem; color:#2563eb;">人口（人）</strong>
-                <span id="rep-unit-text" style="color:#64748b; font-size:0.85rem;">（単位: 人）</span>
+                <span id="rep-unit-text" style="color:#64748b; font-size:0.82rem;">（単位: 人）</span>
                 <span id="rep-per-capita-badge" class="per-capita-badge" style="display:none;">人口1,000人あたり</span>
               </div>
             </div>
@@ -316,46 +316,52 @@
             </div>
           </header>
 
-          <!-- Report Grid (2 Columns) -->
-          <div class="rep-grid-landscape">
+          <!-- Report Main Body (Portrait: 上段地図・中段統計&順位・下段所見) -->
+          <main class="rep-body-portrait">
             
-            <!-- Left: High-Precision Vector Map & Legend (縦横比完全維持) -->
-            <div class="rep-map-col">
-              <div class="rep-map-wrapper">
+            <!-- 上段: 最大化ベクター地図 & 凡例（用紙幅いっぱいに美麗描画） -->
+            <section class="rep-portrait-map-section">
+              <div class="rep-map-frame">
                 <div id="rep-map-render-target"></div>
               </div>
               <div class="rep-legend-box">
                 <span style="font-weight:700; color:#334155;">【階級凡例】</span>
                 <div id="rep-legend-items" style="display:flex; gap:10px; align-items:center;"></div>
               </div>
-            </div>
+            </section>
 
-            <!-- Right: Data, Stats & Ranking Table -->
-            <div class="rep-data-col">
+            <!-- 中段: 基本統計サマリー & 自治体ランキング (2カラム並列) -->
+            <section class="rep-portrait-mid">
               
-              <!-- Basic Stats Table -->
+              <!-- 左側: 基本統計量 -->
               <div class="rep-card">
                 <div class="rep-card-title">
                   <i class="fa-solid fa-chart-pie" style="color:#2563eb;"></i>
-                  <span>基本統計量（全県）</span>
+                  <span>基本統計サマリー（全県）</span>
                 </div>
                 <table class="rep-table">
                   <tbody>
                     <tr>
                       <th>対象自治体数</th>
                       <td id="rep-stat-count">40 / 40 市町村</td>
+                    </tr>
+                    <tr>
                       <th>合　計</th>
                       <td id="rep-stat-sum">-</td>
                     </tr>
                     <tr>
                       <th>平均値</th>
                       <td id="rep-stat-mean">-</td>
+                    </tr>
+                    <tr>
                       <th>中央値</th>
                       <td id="rep-stat-median">-</td>
                     </tr>
                     <tr>
                       <th>最　大</th>
                       <td id="rep-stat-max">-</td>
+                    </tr>
+                    <tr>
                       <th>最　小</th>
                       <td id="rep-stat-min">-</td>
                     </tr>
@@ -363,7 +369,7 @@
                 </table>
               </div>
 
-              <!-- Rankings (Top 5 & Bottom 5) -->
+              <!-- 右側: 上位・下位自治体ランキング -->
               <div class="rep-card">
                 <div class="rep-card-title">
                   <i class="fa-solid fa-ranking-star" style="color:#eab308;"></i>
@@ -385,18 +391,18 @@
                 </div>
               </div>
 
-              <!-- Notes & Observations Box (Editable directly before printing!) -->
-              <div class="rep-card rep-memo-box">
-                <div class="rep-card-title">
-                  <i class="fa-regular fa-pen-to-square" style="color:#6366f1;"></i>
-                  <span>分析所見・メモ（印刷前に編集可能）</span>
-                </div>
-                <textarea id="rep-memo-textarea" class="rep-memo-textarea" placeholder="ここに分析メモや着目ポイントを直接入力できます（印刷時にそのまま反映されます）。"></textarea>
+            </section>
+
+            <!-- 下段: 分析所見・メモ欄（印刷前に直接編集可能） -->
+            <section class="rep-card rep-portrait-bottom">
+              <div class="rep-card-title">
+                <i class="fa-regular fa-pen-to-square" style="color:#6366f1;"></i>
+                <span>分析所見・着目ポイント（印刷前に直接編集可能）</span>
               </div>
+              <textarea id="rep-memo-textarea" class="rep-memo-textarea" placeholder="ここに分析メモや所見を直接入力できます（印刷時にそのまま反映されます）。"></textarea>
+            </section>
 
-            </div>
-
-          </div>
+          </main>
 
           <!-- Report Footer -->
           <footer class="rep-footer">

@@ -742,18 +742,16 @@ function updateInfoPanels() {
 }
 
 /* ==========================================================================
-   SVG Vector Map Generator (for crisp A4 Report Printing with TRUE Mercator Aspect Ratio)
+   SVG Vector Map Generator (for crisp A4 Portrait Report with TRUE Mercator Aspect Ratio)
    ========================================================================== */
 function renderReportSvgMap(varItem, breaks, paletteKey) {
   const effective = getEffectiveData(varItem);
 
-  // 青森県の地理的境界座標
   const minLon = 139.8601;
   const maxLon = 141.6826;
   const minLat = 40.2178;
   const maxLat = 41.5559;
 
-  // メルカトルY座標（ラジアン）
   function latToMerc(latDeg) {
     const latRad = (latDeg * Math.PI) / 180;
     return Math.log(Math.tan(Math.PI / 4 + latRad / 2));
@@ -765,11 +763,11 @@ function renderReportSvgMap(varItem, breaks, paletteKey) {
   const lonSpan = ((maxLon - minLon) * Math.PI) / 180;
   const mercYSpan = yMaxMerc - yMinMerc;
 
-  // 正確なメルカトル投影：横と縦で全く同一の拡大スケールを適用し、縦横比の歪みを完全にゼロにする
-  const pad = 12;
-  const mapW = 460;
-  const scale = mapW / lonSpan; // 共通スケール
-  const mapH = mercYSpan * scale; // 正確なアスペクト比で高さを算出
+  // 縦置きA4の地図枠に最適化した等角メルカトル投影（共通スケールで歪みゼロ）
+  const pad = 10;
+  const mapW = 480;
+  const scale = mapW / lonSpan;
+  const mapH = mercYSpan * scale;
 
   const svgW = mapW + pad * 2;
   const svgH = mapH + pad * 2;
@@ -868,7 +866,7 @@ function openReportModal() {
   }
   document.getElementById("rep-source-text").textContent = sourceText;
 
-  // 正確なアスペクト比でベクターマップを生成
+  // 正確なアスペクト比でベクターマップを生成（縦置き大画面）
   const mapSvgWrapper = document.getElementById("rep-map-render-target");
   mapSvgWrapper.innerHTML = renderReportSvgMap(currentVar, breaks, state.activePalette);
 
@@ -949,7 +947,7 @@ async function saveReportAsPNG() {
     let varName = currentVar ? currentVar.name.replace(/[\/\:\*\?\"\<\>\|]/g, "_") : "レポート";
     if (state.isPerCapita) varName += "_人口1000人対";
 
-    link.download = `青森県市町村データ100_${varName}_A4レポート.png`;
+    link.download = `青森県市町村データ100_${varName}_A4レポート_縦.png`;
     link.href = dataUrl;
     link.click();
   } catch (err) {
