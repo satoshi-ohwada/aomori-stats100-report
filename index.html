@@ -45,9 +45,12 @@
       
       <!-- Section 1: Indicator Selection -->
       <div class="sidebar-section">
-        <div class="section-label">
-          <i class="fa-solid fa-list-check"></i>
-          <span>1. 統計データを選ぶ</span>
+        <div class="step-header">
+          <span class="step-badge">1</span>
+          <div class="step-info">
+            <span class="step-title">統計データを選ぶ</span>
+            <span class="step-desc">全105指標から検索・選択</span>
+          </div>
         </div>
         
         <!-- Category Filter -->
@@ -98,9 +101,12 @@
 
       <!-- Section 2: Per-Capita Population Transform (人口1,000人あたり) -->
       <div class="sidebar-section">
-        <div class="section-label">
-          <i class="fa-solid fa-users-gear"></i>
-          <span>2. 人口補正（率化）</span>
+        <div class="step-header">
+          <span class="step-badge">2</span>
+          <div class="step-info">
+            <span class="step-title">人口補正（率化）</span>
+            <span class="step-desc">自治体の人口規模差を平準化</span>
+          </div>
         </div>
         <div class="per-capita-toggle-box">
           <button id="btn-mode-raw" class="per-capita-btn active" data-mode="raw" title="実測値のまま表示します">
@@ -119,9 +125,12 @@
 
       <!-- Section 3: Color Palette -->
       <div class="sidebar-section">
-        <div class="section-label">
-          <i class="fa-solid fa-palette"></i>
-          <span>3. 塗り分けカラー</span>
+        <div class="step-header">
+          <span class="step-badge">3</span>
+          <div class="step-info">
+            <span class="step-title">塗り分けカラー</span>
+            <span class="step-desc">地図とレポートの配色テーマ</span>
+          </div>
         </div>
         
         <div class="palette-picker">
@@ -173,9 +182,12 @@
 
       <!-- Section 4: Map Label Display Options -->
       <div class="sidebar-section">
-        <div class="section-label">
-          <i class="fa-solid fa-tags"></i>
-          <span>4. 地図ラベル表示</span>
+        <div class="step-header">
+          <span class="step-badge">4</span>
+          <div class="step-info">
+            <span class="step-title">地図ラベル表示</span>
+            <span class="step-desc">市町村名・数値を地図に表示</span>
+          </div>
         </div>
         <div class="sidebar-toggle-group">
           <label id="sidebar-toggle-names" class="sidebar-toggle-card" title="市町村名を地図上に直接表示/非表示">
@@ -198,12 +210,15 @@
       </div>
 
       <!-- Section 5: Print Action Guide -->
-      <div class="sidebar-section" style="border-bottom:none;">
-        <div class="section-label">
-          <i class="fa-solid fa-file-lines"></i>
-          <span>5. レポート印刷</span>
+      <div class="sidebar-section step-final">
+        <div class="step-header">
+          <span class="step-badge step-badge-goal">5</span>
+          <div class="step-info">
+            <span class="step-title">A4レポート印刷</span>
+            <span class="step-desc">印刷・PDF保存・画像出力</span>
+          </div>
         </div>
-        <p style="font-size:0.8rem; color:#64748b; margin-bottom:12px;">
+        <p style="font-size:0.8rem; color:#64748b; margin-bottom:12px; line-height:1.4;">
           現在の作図結果、全県統計、上位・下位ランキングが自動レイアウトされたA4レポートを印刷・PDF保存できます。
         </p>
         <button onclick="document.getElementById('btn-open-report').click()" class="btn-print-hero" style="width:100%; justify-content:center;">
