@@ -380,42 +380,55 @@ body {
   color: #475569;
 }
 
-/* Content Area (Map Container) */
+/* Content Area (Map Container: 100% Full Canvas) */
 .content-area {
   flex: 1;
-  display: flex;
-  flex-direction: column;
   position: relative;
-  background: #f8fafc;
+  background: #ffffff;
   overflow: hidden;
   height: 100%;
+  width: 100%;
 }
 
-/* Compact Slim Status Bar on Top of Map */
-.map-status-bar {
-  background: rgba(255, 255, 255, 0.95);
+/* Leaflet Map - 100% Full View Area */
+#map-view {
+  width: 100%;
+  height: 100%;
+  background: #ffffff;
+}
+
+/* Prevent Grab/Dragging Cursors, Keep Clean Interaction */
+#map-view .leaflet-container {
+  background: #ffffff !important;
+  cursor: default !important;
+}
+
+#map-view .leaflet-interactive {
+  cursor: pointer !important;
+}
+
+/* Floating Indicator Title Badge on Top-Left */
+.map-floating-header {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: rgba(255, 255, 255, 0.94);
   backdrop-filter: blur(8px);
-  padding: 6px 14px;
-  border-bottom: 1px solid var(--border-color);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  z-index: 500;
-  flex-shrink: 0;
-  height: 38px;
-}
-
-.status-left {
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  padding: 6px 12px;
   display: flex;
   align-items: center;
   gap: 10px;
+  z-index: 500;
 }
 
 .btn-sidebar-toggle {
-  background: transparent;
+  background: #ffffff;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
-  padding: 3px 8px;
+  padding: 4px 8px;
   font-size: 0.8rem;
   color: var(--text-muted);
   cursor: pointer;
@@ -428,6 +441,7 @@ body {
 .btn-sidebar-toggle:hover {
   background: #f1f5f9;
   color: var(--text-main);
+  border-color: #cbd5e1;
 }
 
 .active-var-title {
@@ -448,7 +462,12 @@ body {
   border-radius: 8px;
 }
 
-.status-right {
+/* Floating Actions on Top-Right */
+.map-floating-actions {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 500;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -456,23 +475,24 @@ body {
 
 /* Toggle Summary Button */
 .btn-toggle-summary {
-  background: #ffffff;
-  border: 1px solid #cbd5e1;
-  border-radius: var(--radius-sm);
-  padding: 4px 10px;
-  font-size: 0.78rem;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(203, 213, 225, 0.9);
+  border-radius: var(--radius-md);
+  padding: 6px 12px;
+  font-size: 0.8rem;
   font-weight: 600;
   color: #334155;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 5px;
-  box-shadow: var(--shadow-sm);
+  gap: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   transition: all 0.15s ease;
 }
 
 .btn-toggle-summary:hover {
-  background: #f8fafc;
+  background: #ffffff;
   border-color: #94a3b8;
   color: var(--primary);
 }
@@ -483,19 +503,11 @@ body {
   color: var(--primary);
 }
 
-/* Map View - Maximized */
-#map-view {
-  flex: 1;
-  width: 100%;
-  height: calc(100% - 38px);
-  background: #f8fafc;
-}
-
 /* Floating Info Panel / Ranking on Map (Hidden by default, shown on demand) */
 .floating-side-panel {
   position: absolute;
-  top: 48px;
-  right: 14px;
+  top: 54px;
+  right: 12px;
   width: 300px;
   background: rgba(255, 255, 255, 0.97);
   backdrop-filter: blur(8px);
@@ -664,22 +676,25 @@ body {
   margin-top: 1px;
 }
 
-/* Map Legend */
+/* Map Legend - Compact Bottom-Right */
 .map-legend-control {
   background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(6px);
   border: 1px solid #cbd5e1;
   border-radius: var(--radius-sm);
-  padding: 6px 10px;
-  box-shadow: var(--shadow-sm);
-  font-size: 0.72rem;
+  padding: 5px 9px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  font-size: 0.7rem;
   line-height: 1.35;
+  margin-bottom: 8px !important;
+  margin-right: 8px !important;
 }
 
 .legend-title {
   font-weight: 700;
   margin-bottom: 3px;
   color: #334155;
-  font-size: 0.72rem;
+  font-size: 0.7rem;
 }
 
 .legend-row {
@@ -690,8 +705,8 @@ body {
 }
 
 .legend-color-box {
-  width: 16px;
-  height: 10px;
+  width: 15px;
+  height: 9px;
   border-radius: 2px;
   border: 1px solid rgba(0,0,0,0.15);
   flex-shrink: 0;
@@ -1242,32 +1257,30 @@ body {
 
     </aside>
 
-    <!-- Main Map & Floating Panels Area -->
+    <!-- Main Map Container (100% Full View Canvas) -->
     <section class="content-area">
       
-      <!-- Compact Status Bar on Map -->
-      <div class="map-status-bar">
-        <div class="status-left">
-          <button id="btn-toggle-sidebar" class="btn-sidebar-toggle" title="サイドバーを開閉して地図を最大化">
-            <i class="fa-solid fa-bars"></i>
-          </button>
-          <div class="active-var-title">
-            <span id="active-var-title-text">人口（人）</span>
-            <span id="active-var-unit-pill" class="unit-pill">単位: 人</span>
-          </div>
-        </div>
-        
-        <div class="status-right">
-          <!-- Summary Toggle Button (指定した時だけ表示) -->
-          <button id="btn-toggle-summary" class="btn-toggle-summary" title="全県統計サマリーと順位を表示/非表示">
-            <i class="fa-solid fa-chart-simple"></i>
-            <span>統計サマリー</span>
-          </button>
+      <!-- Leaflet Map Container (100% Width & Height) -->
+      <div id="map-view"></div>
+
+      <!-- Floating Indicator Header on Top-Left -->
+      <div class="map-floating-header">
+        <button id="btn-toggle-sidebar" class="btn-sidebar-toggle" title="サイドバーを開閉して地図を全画面化">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+        <div class="active-var-title">
+          <span id="active-var-title-text">人口（人）</span>
+          <span id="active-var-unit-pill" class="unit-pill">単位: 人</span>
         </div>
       </div>
-
-      <!-- Leaflet Map Container (Maximized) -->
-      <div id="map-view"></div>
+      
+      <!-- Floating Actions on Top-Right -->
+      <div class="map-floating-actions">
+        <button id="btn-toggle-summary" class="btn-toggle-summary" title="全県統計サマリーと順位を表示/非表示">
+          <i class="fa-solid fa-chart-simple"></i>
+          <span>統計サマリー</span>
+        </button>
+      </div>
 
       <!-- Floating Stats & Ranking Panel (Hidden by default, shown on demand) -->
       <div id="floating-summary-panel" class="floating-side-panel hidden">
@@ -7102,21 +7115,28 @@ function getColorForValue(val, breaks, paletteKey) {
 }
 
 /* ==========================================================================
-   Leaflet Map Control
+   Leaflet Map Control (Fixed & Maximized View, No Dragging / Zooming needed)
    ========================================================================== */
 function initLeafletMap() {
   const map = L.map("map-view", {
     center: [40.78, 140.75],
     zoom: 9,
-    minZoom: 7,
-    maxZoom: 15,
-    zoomControl: false,
+    minZoom: 5,
+    maxZoom: 18,
+    zoomSnap: 0, // 小数点ズームを許可し、領域限界まで完全フィット
+    dragging: false, // マウス操作での移動を無効化
+    scrollWheelZoom: false, // ホイールズーム無効化
+    doubleClickZoom: false, // ダブルクリックズーム無効化
+    touchZoom: false, // タッチズーム無効化
+    boxZoom: false,
+    keyboard: false,
+    zoomControl: false, // ズームボタン非表示
     attributionControl: false
   });
 
-  L.control.zoom({ position: "topleft" }).addTo(map);
   state.leafletMap = map;
 
+  // 凡例コントロール（右下）
   const legend = L.control({ position: "bottomright" });
   legend.onAdd = function() {
     const div = L.DomUtil.create("div", "map-legend-control");
@@ -7127,14 +7147,13 @@ function initLeafletMap() {
   state.legendControl = legend;
 }
 
-// 地図を領域いっぱいに最大拡大表示する
+// 地図を領域限界まで最大拡大表示する（余白ゼロでピッタリフィット）
 function fitMapToContainer() {
   if (!state.leafletMap || !state.geoJsonLayer) return;
   state.leafletMap.invalidateSize();
   const bounds = state.geoJsonLayer.getBounds();
-  // パディングを最小限 [6, 6] にして領域いっぱいに最大表示
   state.leafletMap.fitBounds(bounds, {
-    padding: [6, 6],
+    padding: [0, 0],
     animate: false
   });
 }
@@ -7227,11 +7246,8 @@ function updateLeafletMap() {
     }).addTo(state.leafletMap);
   }
 
-  // 領域いっぱいに最大表示
-  if (!state.mapFitted) {
-    fitMapToContainer();
-    state.mapFitted = true;
-  }
+  // 領域限界まで最大フィット
+  fitMapToContainer();
 
   updateLegendUI(breaks, currentVar.unit);
 }
@@ -7330,7 +7346,7 @@ function initUI() {
     });
   }
 
-  // サイドバーの開閉トグル（地図を画面幅いっぱいに最大化）
+  // サイドバーの開閉トグル（地図を画面横幅100%に全画面化）
   const btnToggleSidebar = document.getElementById("btn-toggle-sidebar");
   const appSidebar = document.getElementById("app-sidebar");
   if (btnToggleSidebar && appSidebar) {
@@ -7342,7 +7358,7 @@ function initUI() {
     });
   }
 
-  // ウィンドウリサイズ時に地図を常に最大フィット
+  // ウィンドウリサイズ時に地図を常に領域限界まで最大フィット
   window.addEventListener("resize", () => {
     fitMapToContainer();
   });
@@ -7680,6 +7696,10 @@ async function copyReportToClipboard() {
 window.addEventListener("DOMContentLoaded", () => {
   initLeafletMap();
   initUI();
+  // 初回ロード完了後に確実に領域最大フィット
+  setTimeout(() => {
+    fitMapToContainer();
+  }, 80);
 });
 
   </script>

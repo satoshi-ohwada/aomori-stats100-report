@@ -148,32 +148,30 @@
 
     </aside>
 
-    <!-- Main Map & Floating Panels Area -->
+    <!-- Main Map Container (100% Full View Canvas) -->
     <section class="content-area">
       
-      <!-- Compact Status Bar on Map -->
-      <div class="map-status-bar">
-        <div class="status-left">
-          <button id="btn-toggle-sidebar" class="btn-sidebar-toggle" title="サイドバーを開閉して地図を最大化">
-            <i class="fa-solid fa-bars"></i>
-          </button>
-          <div class="active-var-title">
-            <span id="active-var-title-text">人口（人）</span>
-            <span id="active-var-unit-pill" class="unit-pill">単位: 人</span>
-          </div>
-        </div>
-        
-        <div class="status-right">
-          <!-- Summary Toggle Button (指定した時だけ表示) -->
-          <button id="btn-toggle-summary" class="btn-toggle-summary" title="全県統計サマリーと順位を表示/非表示">
-            <i class="fa-solid fa-chart-simple"></i>
-            <span>統計サマリー</span>
-          </button>
+      <!-- Leaflet Map Container (100% Width & Height) -->
+      <div id="map-view"></div>
+
+      <!-- Floating Indicator Header on Top-Left -->
+      <div class="map-floating-header">
+        <button id="btn-toggle-sidebar" class="btn-sidebar-toggle" title="サイドバーを開閉して地図を全画面化">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+        <div class="active-var-title">
+          <span id="active-var-title-text">人口（人）</span>
+          <span id="active-var-unit-pill" class="unit-pill">単位: 人</span>
         </div>
       </div>
-
-      <!-- Leaflet Map Container (Maximized) -->
-      <div id="map-view"></div>
+      
+      <!-- Floating Actions on Top-Right -->
+      <div class="map-floating-actions">
+        <button id="btn-toggle-summary" class="btn-toggle-summary" title="全県統計サマリーと順位を表示/非表示">
+          <i class="fa-solid fa-chart-simple"></i>
+          <span>統計サマリー</span>
+        </button>
+      </div>
 
       <!-- Floating Stats & Ranking Panel (Hidden by default, shown on demand) -->
       <div id="floating-summary-panel" class="floating-side-panel hidden">

@@ -247,21 +247,28 @@ function getColorForValue(val, breaks, paletteKey) {
 }
 
 /* ==========================================================================
-   Leaflet Map Control
+   Leaflet Map Control (Fixed & Maximized View, No Dragging / Zooming needed)
    ========================================================================== */
 function initLeafletMap() {
   const map = L.map("map-view", {
     center: [40.78, 140.75],
     zoom: 9,
-    minZoom: 7,
-    maxZoom: 15,
-    zoomControl: false,
+    minZoom: 5,
+    maxZoom: 18,
+    zoomSnap: 0, // 小数点ズームを許可し、領域限界まで完全フィット
+    dragging: false, // マウス操作での移動を無効化
+    scrollWheelZoom: false, // ホイールズーム無効化
+    doubleClickZoom: false, // ダブルクリックズーム無効化
+    touchZoom: false, // タッチズーム無効化
+    boxZoom: false,
+    keyboard: false,
+    zoomControl: false, // ズームボタン非表示
     attributionControl: false
   });
 
-  L.control.zoom({ position: "topleft" }).addTo(map);
   state.leafletMap = map;
 
+  // 凡例コントロール（右下）
   const legend = L.control({ position: "bottomright" });
   legend.onAdd = function() {
     const div = L.DomUtil.create("div", "map-legend-control");
@@ -272,14 +279,13 @@ function initLeafletMap() {
   state.legendControl = legend;
 }
 
-// 地図を領域いっぱいに最大拡大表示する
+// 地図を領域限界まで最大拡大表示する（余白ゼロでピッタリフィット）
 function fitMapToContainer() {
   if (!state.leafletMap || !state.geoJsonLayer) return;
   state.leafletMap.invalidateSize();
   const bounds = state.geoJsonLayer.getBounds();
-  // パディングを最小限 [6, 6] にして領域いっぱいに最大表示
   state.leafletMap.fitBounds(bounds, {
-    padding: [6, 6],
+    padding: [0, 0],
     animate: false
   });
 }
@@ -372,11 +378,8 @@ function updateLeafletMap() {
     }).addTo(state.leafletMap);
   }
 
-  // 領域いっぱいに最大表示
-  if (!state.mapFitted) {
-    fitMapToContainer();
-    state.mapFitted = true;
-  }
+  // 領域限界まで最大フィット
+  fitMapToContainer();
 
   updateLegendUI(breaks, currentVar.unit);
 }
@@ -475,7 +478,7 @@ function initUI() {
     });
   }
 
-  // サイドバーの開閉トグル（地図を画面幅いっぱいに最大化）
+  // サイドバーの開閉トグル（地図を画面横幅100%に全画面化）
   const btnToggleSidebar = document.getElementById("btn-toggle-sidebar");
   const appSidebar = document.getElementById("app-sidebar");
   if (btnToggleSidebar && appSidebar) {
@@ -487,7 +490,7 @@ function initUI() {
     });
   }
 
-  // ウィンドウリサイズ時に地図を常に最大フィット
+  // ウィンドウリサイズ時に地図を常に領域限界まで最大フィット
   window.addEventListener("resize", () => {
     fitMapToContainer();
   });
@@ -825,4 +828,8 @@ async function copyReportToClipboard() {
 window.addEventListener("DOMContentLoaded", () => {
   initLeafletMap();
   initUI();
+  // 初回ロード完了後に確実に領域最大フィット
+  setTimeout(() => {
+    fitMapToContainer();
+  }, 80);
 });
