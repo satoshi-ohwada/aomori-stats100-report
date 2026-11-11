@@ -98,18 +98,43 @@
 
 ```
 aomori-stats100-report/
+├── .gitignore               # work/, scratch/, 一時ファイル除外
+├── GEMINI.md                # 開発・ワークスペースガイドライン
+├── LICENSE                  # MIT License
+├── README.md                # 本ドキュメント（操作マニュアル・公開手順）
 ├── index.html               # メインHTML（モジュール読み込み型）
 ├── index_standalone.html    # 完全単一スタンドアロンHTML（配信用・オフライン対応）
 ├── build_standalone.py      # 単一HTML生成ビルドスクリプト
-├── README.md                # 本ドキュメント
+├── start_server.sh          # Linux/macOS用ワンクリック起動スクリプト
+├── kidou.bat                # Windows用ワンクリック起動バッチ
+├── icon.png                 # アプリケーションアイコン（512x512）
+├── favicon.png              # ファビコン（64x64）
 ├── css/
 │   └── style.css            # アプリケーション＆A4印刷用スタイルシート
 ├── js/
 │   ├── app.js               # アプリケーションメインロジック（地図・UI・レポート）
 │   ├── data.js              # 105統計指標データ（令和8年 青森県統計年鑑）
 │   └── geojson.js           # 青森県40市町村 GeoJSONポリゴンデータ
-└── vendor/                  # 外部依存ライブラリ（オフライン動作対応）
+├── data/
+│   └── nenkan_data100.csv   # 元の統計年鑑CSVデータ
+├── vendor/                  # 外部依存ライブラリ（オフライン動作対応）
+│   ├── css/
+│   └── js/
+└── work/                    # 検証・一時作業用ディレクトリ（.gitignore除外）
+    └── .gitkeep
 ```
+
+---
+
+## 起動方法
+
+### 1. Web公開（GitHub Pages）
+GitHubリポジトリの **Settings** > **Pages** で `main` ブランチの `/ (root)` を指定して公開すれば、インストール不要ですぐにWeb利用できます。
+
+### 2. ローカル実行
+* **Windows**: `kidou.bat` をダブルクリックするだけでブラウザが起動します。
+* **Linux / macOS**: `./start_server.sh` をターミナルで実行するとローカルサーバーが立ち上がりブラウザが開きます。
+* **オフライン・完全単体利用**: `index_standalone.html` を任意のブラウザでダブルクリックするだけで動作します。
 
 ---
 
@@ -118,3 +143,4 @@ aomori-stats100-report/
 * **統計データ**: 令和8年 青森県統計年鑑 市町村データ100（青森県企画政策部統計分析課）
 * **基準人口**: 令和2年(2020年)国勢調査確定人口（総務省統計局）
 * **行政区域ポリゴン**: 国土数値情報（行政区域データ）
+* **ライセンス**: MIT License (詳細は [LICENSE](file:///home/user/Documents/GitHub/aomori-stats100-report/LICENSE) を参照)
