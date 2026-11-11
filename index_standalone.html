@@ -6773,10 +6773,96 @@ const state = {
   filteredList: [],
   leafletMap: null,
   geoJsonLayer: null,
+  outerBorderLayer: null,
   legendControl: null,
   currentBreaks: [],
   currentStats: null
 };
+
+// 色ユーティリティ
+function hexToRgb(hex) {
+  let c = (hex || "#ffffff").replace('#', '');
+  if (c.length === 3) c = c.split('').map(x => x + x).join('');
+  const num = parseInt(c, 16);
+  return [ (num >> 16) & 255, (num >> 8) & 255, num & 255 ];
+}
+
+// 元のツールと同一の境界線スタイル計算（塗りの明度に応じて白またはダークスレート）
+function getBorderStrokeForFeature(fillColor) {
+  if (!fillColor || fillColor === "transparent") {
+    return { color: "#475569", weight: 1.5 };
+  }
+  const rgb = hexToRgb(fillColor || "#ffffff");
+  const lum = 0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2];
+  const isVeryDark = (lum < 60);
+
+  if (isVeryDark) {
+    return { color: "#ffffff", weight: 2.0 };
+  }
+  return { color: "#334155", weight: 1.5 };
+}
+
+// 外周県境境界線の抽出（元のツールと同一アルゴリズム）
+let cachedOuterBoundaryGeoJSON = null;
+function getOuterBorderGeoJSON(geojsonData) {
+  if (cachedOuterBoundaryGeoJSON) return cachedOuterBoundaryGeoJSON;
+  if (!geojsonData || !geojsonData.features) return null;
+
+  const segmentCounts = new Map();
+  const segmentGeoms = new Map();
+  const coordKey = (pt) => `${pt[0].toFixed(5)},${pt[1].toFixed(5)}`;
+
+  function processRing(ring) {
+    for (let i = 0; i < ring.length - 1; i++) {
+      const p1 = ring[i];
+      const p2 = ring[i + 1];
+      const k1 = coordKey(p1);
+      const k2 = coordKey(p2);
+      if (k1 === k2) continue;
+
+      const key = k1 < k2 ? `${k1}_${k2}` : `${k2}_${k1}`;
+      if (segmentCounts.has(key)) {
+        segmentCounts.set(key, segmentCounts.get(key) + 1);
+      } else {
+        segmentCounts.set(key, 1);
+        segmentGeoms.set(key, [p1, p2]);
+      }
+    }
+  }
+
+  geojsonData.features.forEach(feature => {
+    const geom = feature.geometry;
+    if (!geom) return;
+    if (geom.type === "Polygon") {
+      geom.coordinates.forEach(ring => processRing(ring));
+    } else if (geom.type === "MultiPolygon") {
+      geom.coordinates.forEach(polygon => {
+        polygon.forEach(ring => processRing(ring));
+      });
+    }
+  });
+
+  const outerSegments = [];
+  segmentCounts.forEach((count, key) => {
+    if (count === 1) {
+      outerSegments.push(segmentGeoms.get(key));
+    }
+  });
+
+  cachedOuterBoundaryGeoJSON = {
+    type: "FeatureCollection",
+    features: [{
+      type: "Feature",
+      geometry: {
+        type: "MultiLineString",
+        coordinates: outerSegments
+      },
+      properties: { name: "Aomori Outer Boundary" }
+    }]
+  };
+
+  return cachedOuterBoundaryGeoJSON;
+}
 
 // 数値フォーマッタ
 function formatNum(val, decimals = null) {
@@ -6787,7 +6873,6 @@ function formatNum(val, decimals = null) {
       maximumFractionDigits: decimals
     });
   }
-  // 小数がある場合は最大2桁、整数の場合は整数表示
   if (val % 1 !== 0) {
     return Number(val).toLocaleString("ja-JP", {
       minimumFractionDigits: 1,
@@ -6832,7 +6917,6 @@ function computeStats(varItem) {
   const sum = vals.reduce((a, b) => a + b, 0);
   const mean = sum / vals.length;
 
-  // 中央値
   let median = 0;
   const n = vals.length;
   if (n % 2 === 1) {
@@ -6856,7 +6940,6 @@ function computeStats(varItem) {
 // 5段階の分位数（Quantile）階級分割
 function computeQuantileBreaks(sortedEntries, k = 5) {
   if (!sortedEntries || sortedEntries.length === 0) return [0, 0, 0, 0, 0, 0];
-  // 昇順に並べ替え
   const vals = sortedEntries.map(e => e.val).sort((a, b) => a - b);
   const n = vals.length;
   const breaks = [vals[0]];
@@ -6872,7 +6955,6 @@ function computeQuantileBreaks(sortedEntries, k = 5) {
   }
   breaks.push(vals[n - 1]);
 
-  // 重複値の調整
   for (let i = 1; i < breaks.length; i++) {
     if (breaks[i] <= breaks[i - 1]) {
       breaks[i] = breaks[i - 1] + 0.0001;
@@ -6885,7 +6967,7 @@ function computeQuantileBreaks(sortedEntries, k = 5) {
 // 値に対応する色の取得
 function getColorForValue(val, breaks, paletteKey) {
   if (val === null || val === undefined || isNaN(val)) {
-    return "#e2e8f0"; // 欠損値は薄いグレー
+    return "#e2e8f0";
   }
   const colors = PALETTES[paletteKey].colors;
   const k = colors.length;
@@ -6902,7 +6984,6 @@ function getColorForValue(val, breaks, paletteKey) {
    Leaflet Map Control
    ========================================================================== */
 function initLeafletMap() {
-  // 青森県全体の初期中心座標とズームレベル
   const map = L.map("map-view", {
     center: [40.78, 140.75],
     zoom: 9,
@@ -6912,12 +6993,9 @@ function initLeafletMap() {
     attributionControl: false
   });
 
-  // ズームコントロールを左上に配置
   L.control.zoom({ position: "topleft" }).addTo(map);
-
   state.leafletMap = map;
 
-  // 凡例コントロールの追加
   const legend = L.control({ position: "bottomright" });
   legend.onAdd = function() {
     const div = L.DomUtil.create("div", "map-legend-control");
@@ -6938,24 +7016,30 @@ function updateLeafletMap() {
   const breaks = computeQuantileBreaks(stats.sorted, 5);
   state.currentBreaks = breaks;
 
-  // 既存のレイヤーをクリア
+  // 既存レイヤーをクリア
   if (state.geoJsonLayer) {
     state.leafletMap.removeLayer(state.geoJsonLayer);
+    state.geoJsonLayer = null;
+  }
+  if (state.outerBorderLayer) {
+    state.leafletMap.removeLayer(state.outerBorderLayer);
+    state.outerBorderLayer = null;
   }
 
-  // GeoJSONレイヤーの描画
+  // 1. 各市町村ポリゴンの描画（元のツールと同一の境界線スタイル）
   state.geoJsonLayer = L.geoJSON(AOMORI_GEOJSON, {
     style: function(feature) {
       const muniName = feature.properties.name;
       const val = currentVar.data[muniName];
       const fillColor = getColorForValue(val, breaks, state.activePalette);
+      const strokeInfo = getBorderStrokeForFeature(fillColor);
 
       return {
         fillColor: fillColor,
-        weight: 1.5,
-        opacity: 1,
-        color: "#ffffff",
-        fillOpacity: 0.88
+        fillOpacity: 0.92,
+        color: strokeInfo.color,
+        weight: strokeInfo.weight,
+        opacity: 0.9
       };
     },
     onEachFeature: function(feature, layer) {
@@ -6966,7 +7050,6 @@ function updateLeafletMap() {
       const rankStr = rank ? `（全40市町村中 第 <strong style="color:#2563eb;">${rank}</strong> 位）` : "";
       const valStr = val !== null && val !== undefined ? `${formatNum(val)} <span style="font-size:0.8rem; font-weight:normal;">${currentVar.unit || ""}</span>` : "データなし";
 
-      // ツールチップ
       layer.bindTooltip(`
         <div class="tooltip-muni-name">${muniName}</div>
         <div class="tooltip-val">${valStr}</div>
@@ -6978,14 +7061,13 @@ function updateLeafletMap() {
         offset: [0, -10]
       });
 
-      // ホバーインタラクション
       layer.on({
         mouseover: function(e) {
           const l = e.target;
           l.setStyle({
-            weight: 3,
+            weight: 3.0,
             color: "#0f172a",
-            fillOpacity: 0.95
+            fillOpacity: 0.96
           });
           if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
             l.bringToFront();
@@ -6998,7 +7080,21 @@ function updateLeafletMap() {
     }
   }).addTo(state.leafletMap);
 
-  // 初回のみバウンズにフィット
+  // 2. 外周県境境界線の描画（元のツールと同一の外周輪郭レイヤー）
+  const outerGeoJSON = getOuterBorderGeoJSON(AOMORI_GEOJSON);
+  if (outerGeoJSON) {
+    state.outerBorderLayer = L.geoJSON(outerGeoJSON, {
+      style: {
+        color: "#0f172a",
+        weight: 2.4,
+        fill: false,
+        opacity: 0.95
+      },
+      interactive: false
+    }).addTo(state.leafletMap);
+  }
+
+  // 初回のみ表示領域にフィット
   if (!state.mapFitted) {
     state.leafletMap.fitBounds(state.geoJsonLayer.getBounds(), {
       padding: [20, 20]
@@ -7023,15 +7119,14 @@ function updateLegendUI(breaks, unit) {
     const high = formatNum(breaks[i + 1]);
     html += `
       <div class="legend-row">
-        <div class="legend-color-box" style="background:${colors[i]};"></div>
+        <div class="legend-color-box" style="background:${colors[i]}; border-color:#334155;"></div>
         <span>${low} 〜 ${high}</span>
       </div>
     `;
   }
-  // 欠損値
   html += `
     <div class="legend-row" style="margin-top:4px; padding-top:4px; border-top:1px dashed #e2e8f0; color:#64748b;">
-      <div class="legend-color-box" style="background:#e2e8f0;"></div>
+      <div class="legend-color-box" style="background:#e2e8f0; border-color:#94a3b8;"></div>
       <span>データなし</span>
     </div>
   `;
@@ -7045,21 +7140,17 @@ function updateLegendUI(breaks, unit) {
 function initUI() {
   const catSelect = document.getElementById("cat-select");
   const searchInput = document.getElementById("search-input");
-  const varListContainer = document.getElementById("variable-list");
   const quickPicksContainer = document.getElementById("quick-picks-container");
 
-  // カテゴリ一覧の抽出・登録
   const categories = ["すべての分野", ...new Set(STATS_DATA.map(d => d.category))];
   catSelect.innerHTML = categories.map(cat => `<option value="${cat}">${cat}</option>`).join("");
 
-  // クイックピックタグの作成
   quickPicksContainer.innerHTML = QUICK_PICKS.map(p => `
     <button class="quick-tag ${p.id === state.activeVarId ? 'active' : ''}" data-id="${p.id}">
       ${p.label}
     </button>
   `).join("");
 
-  // イベント：クイックピック
   quickPicksContainer.addEventListener("click", e => {
     const btn = e.target.closest(".quick-tag");
     if (!btn) return;
@@ -7067,17 +7158,14 @@ function initUI() {
     selectVariable(id);
   });
 
-  // イベント：カテゴリ選択
   catSelect.addEventListener("change", () => {
     filterVariables();
   });
 
-  // イベント：検索入力
   searchInput.addEventListener("input", () => {
     filterVariables();
   });
 
-  // イベント：カラーパレット切り替え
   document.querySelectorAll(".palette-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".palette-btn").forEach(b => b.classList.remove("active"));
@@ -7088,11 +7176,9 @@ function initUI() {
     });
   });
 
-  // イベント：A4レポート印刷モーダル表示
   const btnOpenReport = document.getElementById("btn-open-report");
   const modalOverlay = document.getElementById("report-modal");
   const btnCloseReport = document.getElementById("btn-close-report");
-  const btnCloseReportFooter = document.getElementById("btn-close-report-footer");
 
   if (btnOpenReport) {
     btnOpenReport.addEventListener("click", () => {
@@ -7106,13 +7192,6 @@ function initUI() {
     });
   }
 
-  if (btnCloseReportFooter) {
-    btnCloseReportFooter.addEventListener("click", () => {
-      modalOverlay.classList.add("hidden");
-    });
-  }
-
-  // イベント：レポート内アクション
   document.getElementById("btn-print-report")?.addEventListener("click", () => {
     window.print();
   });
@@ -7125,12 +7204,10 @@ function initUI() {
     copyReportToClipboard();
   });
 
-  // 初期リスト表示
   filterVariables();
   selectVariable(state.activeVarId);
 }
 
-// 指標リストのフィルタリング
 function filterVariables() {
   const cat = document.getElementById("cat-select").value;
   const kw = document.getElementById("search-input").value.trim().toLowerCase();
@@ -7152,7 +7229,6 @@ function filterVariables() {
     </div>
   `).join("");
 
-  // リスト項目クリックイベント
   listContainer.querySelectorAll(".variable-item").forEach(el => {
     el.addEventListener("click", () => {
       const id = el.getAttribute("data-id");
@@ -7161,16 +7237,13 @@ function filterVariables() {
   });
 }
 
-// 指標の選択と更新
 function selectVariable(varId) {
   state.activeVarId = varId;
 
-  // リストの選択ハイライト更新
   document.querySelectorAll(".variable-item").forEach(el => {
     el.classList.toggle("selected", el.getAttribute("data-id") === varId);
   });
 
-  // クイックピックの選択ハイライト更新
   document.querySelectorAll(".quick-tag").forEach(el => {
     el.classList.toggle("active", el.getAttribute("data-id") === varId);
   });
@@ -7179,23 +7252,19 @@ function selectVariable(varId) {
   updateInfoPanels();
 }
 
-// サイドパネルとフローティング統計パネルの更新
 function updateInfoPanels() {
   const currentVar = STATS_DATA.find(v => v.id === state.activeVarId);
   if (!currentVar) return;
 
   const stats = state.currentStats || computeStats(currentVar);
 
-  // マップ上部バー
   document.getElementById("active-var-title-text").textContent = currentVar.name;
   document.getElementById("active-var-unit-pill").textContent = currentVar.unit ? `単位: ${currentVar.unit}` : "単位なし";
 
-  // サイドパネルの選択中カード
   document.getElementById("selected-var-num").textContent = `No.${currentVar.num} [${currentVar.category}]`;
   document.getElementById("selected-var-name").textContent = currentVar.name;
   document.getElementById("selected-var-source").textContent = currentVar.source ? `出典: ${currentVar.source}` : "";
 
-  // フローティングサマリーパネル
   document.getElementById("float-stat-mean").textContent = formatNum(stats.mean);
   document.getElementById("float-stat-median").textContent = formatNum(stats.median);
   document.getElementById("float-stat-max-val").textContent = formatNum(stats.max.val);
@@ -7203,7 +7272,6 @@ function updateInfoPanels() {
   document.getElementById("float-stat-min-val").textContent = formatNum(stats.min.val);
   document.getElementById("float-stat-min-muni").textContent = `(${stats.min.muni})`;
 
-  // 上位3自治体
   const topListEl = document.getElementById("float-rank-top");
   const top3 = stats.sorted.slice(0, 3);
   topListEl.innerHTML = top3.map((item, idx) => `
@@ -7216,7 +7284,6 @@ function updateInfoPanels() {
     </li>
   `).join("");
 
-  // 下位3自治体
   const btmListEl = document.getElementById("float-rank-btm");
   const btm3 = stats.sorted.slice(-3).reverse();
   btmListEl.innerHTML = btm3.map(item => `
@@ -7234,7 +7301,6 @@ function updateInfoPanels() {
    SVG Vector Map Generator (for crisp A4 Report Printing)
    ========================================================================== */
 function renderReportSvgMap(varItem, breaks, paletteKey) {
-  // 青森県の地理的バウンディングボックス
   const minLon = 139.8601;
   const maxLon = 141.6826;
   const minLat = 40.2178;
@@ -7244,7 +7310,6 @@ function renderReportSvgMap(varItem, breaks, paletteKey) {
   const svgH = 390;
   const pad = 12;
 
-  // メルカトル緯度変換
   function latToY(lat) {
     const latRad = (lat * Math.PI) / 180;
     return Math.log(Math.tan(Math.PI / 4 + latRad / 2));
@@ -7253,7 +7318,6 @@ function renderReportSvgMap(varItem, breaks, paletteKey) {
   const yMinMerc = latToY(minLat);
   const yMaxMerc = latToY(maxLat);
 
-  // 投影変換関数
   function project(lon, lat) {
     const x = pad + ((lon - minLon) / (maxLon - minLon)) * (svgW - pad * 2);
     const mercY = latToY(lat);
@@ -7261,14 +7325,14 @@ function renderReportSvgMap(varItem, breaks, paletteKey) {
     return [x, y];
   }
 
-  // 各ポリゴンの描画
   let pathsHtml = "";
-  let labelsHtml = "";
 
+  // 1. 各市町村ポリゴン（境界線: #334155, 1.2px）
   AOMORI_GEOJSON.features.forEach(feat => {
     const muniName = feat.properties.name;
     const val = varItem.data[muniName];
     const fillColor = getColorForValue(val, breaks, paletteKey);
+    const strokeInfo = getBorderStrokeForFeature(fillColor);
 
     let pathD = "";
     const geom = feat.geometry;
@@ -7295,17 +7359,31 @@ function renderReportSvgMap(varItem, breaks, paletteKey) {
       });
     }
 
-    pathsHtml += `<path d="${pathD}" fill="${fillColor}" stroke="#ffffff" stroke-width="0.8" stroke-linejoin="round" />`;
+    pathsHtml += `<path d="${pathD}" fill="${fillColor}" stroke="${strokeInfo.color}" stroke-width="${(strokeInfo.weight * 0.8).toFixed(1)}" stroke-opacity="0.9" stroke-linejoin="round" />`;
   });
+
+  // 2. 外周県境境界線（#0f172a, 2.2px）
+  const outerGeo = getOuterBorderGeoJSON(AOMORI_GEOJSON);
+  let outerPathD = "";
+  if (outerGeo && outerGeo.features && outerGeo.features[0]) {
+    const lines = outerGeo.features[0].geometry.coordinates;
+    lines.forEach(seg => {
+      const p1 = project(seg[0][0], seg[0][1]);
+      const p2 = project(seg[1][0], seg[1][1]);
+      outerPathD += `M ${p1[0].toFixed(1)} ${p1[1].toFixed(1)} L ${p2[0].toFixed(1)} ${p2[1].toFixed(1)} `;
+    });
+  }
+
+  const outerSvg = outerPathD ? `<path d="${outerPathD}" fill="none" stroke="#0f172a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />` : "";
 
   return `
     <svg viewBox="0 0 ${svgW} ${svgH}" width="100%" height="100%" style="display:block; background:#ffffff;">
       <g>${pathsHtml}</g>
+      <g>${outerSvg}</g>
     </svg>
   `;
 }
 
-// レポートモーダルの生成と表示
 function openReportModal() {
   const currentVar = STATS_DATA.find(v => v.id === state.activeVarId);
   if (!currentVar) return;
@@ -7316,30 +7394,26 @@ function openReportModal() {
   const today = new Date();
   const dateStr = `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日`;
 
-  // レポートヘッダー
   document.getElementById("rep-target-var-name").textContent = currentVar.name;
   document.getElementById("rep-unit-text").textContent = currentVar.unit ? `（単位: ${currentVar.unit}）` : "";
   document.getElementById("rep-date-text").textContent = `作成日: ${dateStr}`;
   document.getElementById("rep-source-text").textContent = currentVar.source || "令和8年 青森県統計年鑑";
 
-  // SVGベクターマップのレンダリング
   const mapSvgWrapper = document.getElementById("rep-map-render-target");
   mapSvgWrapper.innerHTML = renderReportSvgMap(currentVar, breaks, state.activePalette);
 
-  // レポート凡例
   const colors = PALETTES[state.activePalette].colors;
   let legendItems = "";
   for (let i = 0; i < colors.length; i++) {
     legendItems += `
       <div style="display:flex; align-items:center; gap:4px;">
-        <span style="display:inline-block; width:12px; height:9px; background:${colors[i]}; border:1px solid #cbd5e1; border-radius:2px;"></span>
+        <span style="display:inline-block; width:12px; height:9px; background:${colors[i]}; border:1px solid #334155; border-radius:2px;"></span>
         <span>${formatNum(breaks[i])}〜${formatNum(breaks[i + 1])}</span>
       </div>
     `;
   }
   document.getElementById("rep-legend-items").innerHTML = legendItems;
 
-  // レポート統計表
   document.getElementById("rep-stat-count").textContent = `${stats.count} / 40 市町村`;
   document.getElementById("rep-stat-sum").textContent = formatNum(stats.sum);
   document.getElementById("rep-stat-mean").textContent = formatNum(stats.mean);
@@ -7347,7 +7421,6 @@ function openReportModal() {
   document.getElementById("rep-stat-max").innerHTML = `<strong>${formatNum(stats.max.val)}</strong> <span style="color:#64748b; font-size:0.68rem;">(${stats.max.muni})</span>`;
   document.getElementById("rep-stat-min").innerHTML = `<strong>${formatNum(stats.min.val)}</strong> <span style="color:#64748b; font-size:0.68rem;">(${stats.min.muni})</span>`;
 
-  // レポート上位5・下位5自治体ランキング
   const top5 = stats.sorted.slice(0, 5);
   document.getElementById("rep-rank-top-list").innerHTML = top5.map((item, idx) => `
     <div class="rep-rank-item">
@@ -7364,7 +7437,6 @@ function openReportModal() {
     </div>
   `).join("");
 
-  // モーダルを表示
   document.getElementById("report-modal").classList.remove("hidden");
 }
 
@@ -7382,7 +7454,7 @@ async function saveReportAsPNG() {
 
   try {
     const canvas = await html2canvas(sheet, {
-      scale: 2.0, // 高精細
+      scale: 2.0,
       useCORS: true,
       backgroundColor: "#ffffff"
     });
