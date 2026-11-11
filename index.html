@@ -306,7 +306,7 @@
               <h1>青森県 市町村データ分析レポート</h1>
               <div class="rep-sub">
                 <strong id="rep-target-var-name" style="font-size:1.05rem; color:#2563eb;">人口（人）</strong>
-                <span id="rep-unit-text" style="color:#64748b; font-size:0.82rem;">（単位: 人）</span>
+                <span id="rep-unit-text" style="color:#475569; font-size:0.80rem;">（単位: 人）</span>
                 <span id="rep-per-capita-badge" class="per-capita-badge" style="display:none;">人口1,000人あたり</span>
               </div>
             </div>
@@ -316,10 +316,10 @@
             </div>
           </header>
 
-          <!-- Report Main Body (Portrait: 上段地図・中段統計&順位・下段所見) -->
+          <!-- Report Main Body (Portrait: 上段地図・中段サマリー&分布・下段40市町村棒グラフ) -->
           <main class="rep-body-portrait">
             
-            <!-- 上段: 最大化ベクター地図 & 凡例（用紙幅いっぱいに美麗描画） -->
+            <!-- 上段: 最大化ベクター地図 & 凡例 -->
             <section class="rep-portrait-map-section">
               <div class="rep-map-frame">
                 <div id="rep-map-render-target"></div>
@@ -330,84 +330,87 @@
               </div>
             </section>
 
-            <!-- 中段: 基本統計サマリー & 自治体ランキング (2カラム並列) -->
+            <!-- 中段: 基本統計サマリー & データ分布(KDE+ヒストグラム) (2カラム並列) -->
             <section class="rep-portrait-mid">
               
-              <!-- 左側: 基本統計量 -->
+              <!-- 左側: 基本統計サマリー (2列×4行テーブル) -->
               <div class="rep-card">
                 <div class="rep-card-title">
-                  <i class="fa-solid fa-chart-pie" style="color:#2563eb;"></i>
-                  <span>基本統計サマリー（全県）</span>
+                  <i class="fa-solid fa-table-cells" style="color:#0f172a;"></i>
+                  <span>基本統計サマリー</span>
+                  <span id="rep-stat-subtitle" style="font-size:0.68rem; font-weight:normal; color:#64748b;">(全県)</span>
                 </div>
-                <table class="rep-table">
+                <table class="rep-stat-table">
                   <tbody>
                     <tr>
-                      <th>対象自治体数</th>
-                      <td id="rep-stat-count">40 / 40 市町村</td>
-                    </tr>
-                    <tr>
+                      <th>対象数</th>
+                      <td id="rep-stat-count">40 / 40</td>
                       <th>合　計</th>
                       <td id="rep-stat-sum">-</td>
                     </tr>
                     <tr>
                       <th>平均値</th>
                       <td id="rep-stat-mean">-</td>
-                    </tr>
-                    <tr>
                       <th>中央値</th>
                       <td id="rep-stat-median">-</td>
                     </tr>
                     <tr>
                       <th>最　大</th>
                       <td id="rep-stat-max">-</td>
-                    </tr>
-                    <tr>
                       <th>最　小</th>
                       <td id="rep-stat-min">-</td>
                     </tr>
+                    <tr>
+                      <th>標準偏差</th>
+                      <td id="rep-stat-sd">-</td>
+                      <th>四分位範囲</th>
+                      <td id="rep-stat-iqr">-</td>
+                    </tr>
                   </tbody>
                 </table>
+                <div id="rep-stat-note" style="font-size:0.64rem; color:#64748b; margin-top:3px; line-height:1.2;"></div>
               </div>
 
-              <!-- 右側: 上位・下位自治体ランキング -->
-              <div class="rep-card">
-                <div class="rep-card-title">
-                  <i class="fa-solid fa-ranking-star" style="color:#eab308;"></i>
-                  <span>自治体ランキング</span>
-                </div>
-                <div class="rep-rank-grid">
-                  <div>
-                    <div style="font-size:0.68rem; font-weight:700; color:#059669; margin-bottom:3px;">
-                      【上位 5 自治体】
+              <!-- 右側: データ分布 (KDE + 度数ヒストグラム) -->
+              <div class="rep-card rep-dist-card">
+                <div>
+                  <div class="rep-card-title rep-dist-card-title">
+                    <div class="rep-dist-title-text">
+                      <i class="fa-solid fa-chart-area" style="color:#0f172a;"></i>
+                      <span>データ分布</span>
+                      <span id="rep-dist-mode-label" class="rep-dist-subtitle"></span>
                     </div>
-                    <div id="rep-rank-top-list"></div>
-                  </div>
-                  <div>
-                    <div style="font-size:0.68rem; font-weight:700; color:#dc2626; margin-bottom:3px;">
-                      【下位 5 自治体】
+                    <div class="rep-dist-legend-compact">
+                      <span class="rep-legend-item"><span class="rep-legend-box"></span>度数</span>
+                      <span class="rep-legend-item"><span class="rep-legend-line rep-kde-line"></span>KDE</span>
+                      <span class="rep-legend-item"><span class="rep-legend-line rep-mean-line"></span>平均</span>
+                      <span class="rep-legend-item"><span class="rep-legend-line rep-median-line"></span>中央</span>
                     </div>
-                    <div id="rep-rank-btm-list"></div>
                   </div>
                 </div>
+                <div id="rep-dist-render-target" class="rep-dist-svg-wrap"></div>
               </div>
 
             </section>
 
-            <!-- 下段: 分析所見・メモ欄（印刷前に直接編集可能） -->
-            <section class="rep-card rep-portrait-bottom">
-              <div class="rep-card-title">
-                <i class="fa-regular fa-pen-to-square" style="color:#6366f1;"></i>
-                <span>分析所見・着目ポイント（印刷前に直接編集可能）</span>
+            <!-- 下段: 40市町村 棒グラフ (多い順) -->
+            <section class="rep-card rep-bar-card rep-portrait-bottom">
+              <div class="rep-bar-card-title">
+                <div style="display:flex; align-items:center; gap:5px;">
+                  <i class="fa-solid fa-chart-column" style="color:#0f172a;"></i>
+                  <span>40市町村 棒グラフ (多い順)</span>
+                </div>
+                <span id="rep-bar-unit-label" style="font-size:0.68rem; font-weight:normal; color:#64748b;"></span>
               </div>
-              <textarea id="rep-memo-textarea" class="rep-memo-textarea" placeholder="ここに分析メモや所見を直接入力できます（印刷時にそのまま反映されます）。"></textarea>
+              <div id="rep-vbar-render-target" class="rep-vbar-svg-wrap"></div>
             </section>
 
           </main>
 
           <!-- Report Footer -->
           <footer class="rep-footer">
-            <span id="rep-footer-note">※本レポートは「青森県 市町村データ100 かんたんマップ」により自動生成されました。</span>
-            <span>青森県40市町村 データセット</span>
+            <span id="rep-footer-note">分析対象: 青森県全40市町村（40市町村の有効データを集計）</span>
+            <span>青森県市町村データ100 レポート</span>
           </footer>
 
         </div>

@@ -241,7 +241,18 @@ function formatNum(val, decimals = null) {
   return Number(val).toLocaleString("ja-JP");
 }
 
-// 統計量の計算
+function computePercentile(sortedNums, p) {
+  const n = sortedNums.length;
+  if (n === 0) return 0;
+  if (n === 1) return sortedNums[0];
+  const idx = p * (n - 1);
+  const low = Math.floor(idx);
+  const high = Math.ceil(idx);
+  const weight = idx - low;
+  return sortedNums[low] * (1 - weight) + sortedNums[high] * weight;
+}
+
+// 統計量の計算（合計、平均、中央値、最大、最小、分散、標準偏差、四分位範囲など）
 function computeStats(effectiveObj) {
   const data = effectiveObj.data;
   const entries = [];
@@ -257,14 +268,21 @@ function computeStats(effectiveObj) {
       sum: 0,
       mean: 0,
       median: 0,
+      q1: 0,
+      q3: 0,
+      iqr: 0,
+      variance: 0,
+      stdDev: 0,
       min: { muni: "-", val: null },
       max: { muni: "-", val: null },
       sorted: [],
+      numList: [],
       ranks: {},
       isPerCapita: effectiveObj.isPerCapita
     };
   }
 
+  // 降順ソート（1位〜40位）
   entries.sort((a, b) => b.val - a.val);
 
   const ranks = {};
@@ -272,26 +290,33 @@ function computeStats(effectiveObj) {
     ranks[item.muni] = idx + 1;
   });
 
-  const vals = entries.map(e => e.val);
-  const sum = vals.reduce((a, b) => a + b, 0);
-  const mean = sum / vals.length;
+  // 昇順数値リスト（パーセンタイル、KDE用）
+  const numListAsc = [...entries].sort((a, b) => a.val - b.val).map(e => e.val);
+  const n = entries.length;
+  const sum = numListAsc.reduce((a, b) => a + b, 0);
+  const mean = n > 0 ? sum / n : 0;
+  const variance = n > 1 ? numListAsc.reduce((acc, v) => acc + Math.pow(v - mean, 2), 0) / (n - 1) : 0;
+  const stdDev = Math.sqrt(variance);
 
-  let median = 0;
-  const n = vals.length;
-  if (n % 2 === 1) {
-    median = vals[Math.floor(n / 2)];
-  } else {
-    median = (vals[n / 2 - 1] + vals[n / 2]) / 2;
-  }
+  const median = computePercentile(numListAsc, 0.50);
+  const q1 = computePercentile(numListAsc, 0.25);
+  const q3 = computePercentile(numListAsc, 0.75);
+  const iqr = q3 - q1;
 
   return {
     count: n,
     sum: sum,
     mean: mean,
     median: median,
+    q1: q1,
+    q3: q3,
+    iqr: iqr,
+    variance: variance,
+    stdDev: stdDev,
     max: entries[0],
     min: entries[entries.length - 1],
     sorted: entries,
+    numList: numListAsc,
     ranks: ranks,
     isPerCapita: effectiveObj.isPerCapita
   };
@@ -839,6 +864,265 @@ function renderReportSvgMap(varItem, breaks, paletteKey) {
   `;
 }
 
+/* ==========================================================================
+   Distribution Chart Generator (Histogram & KDE) - 元のツール仕様
+   ========================================================================== */
+function buildReportDistributionSVG(nums, min, mean, median, max, width = 310, height = 96, unitStr = "", formatValFn = null) {
+  if (!nums || nums.length < 3) {
+    return `<svg width="${width}" height="${height}"><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="10" fill="#94a3b8">データ不足（3件以上必要）</text></svg>`;
+  }
+  const valFmt = typeof formatValFn === "function" ? formatValFn : formatNum;
+  const n = nums.length;
+  const range = (max - min) || 1;
+
+  // 7 Bins (ヒストグラム階級分割)
+  const numBins = 7;
+  const binWidth = range / numBins;
+  const bins = Array(numBins).fill(0);
+
+  nums.forEach(v => {
+    let idx = Math.floor((v - min) / binWidth);
+    if (idx >= numBins) idx = numBins - 1;
+    bins[idx]++;
+  });
+  const maxBinCount = Math.max(...bins, 1);
+
+  // カーネル密度推定 (KDE) - Silverman's rule of thumb
+  const variance = nums.reduce((acc, v) => acc + Math.pow(v - mean, 2), 0) / (n - 1 || 1);
+  const sd = Math.sqrt(variance) || 1;
+  const q1 = computePercentile(nums, 0.25);
+  const q3 = computePercentile(nums, 0.75);
+  const iqr = (q3 - q1) || sd;
+  const bw = (0.9 * Math.min(sd, iqr / 1.34) * Math.pow(n, -0.2)) || (range / 8);
+
+  const pts = 60;
+  const kdePoints = [];
+  let kdeScaledMax = 0;
+
+  for (let p = 0; p <= pts; p++) {
+    const xVal = min + (range / pts) * p;
+    let density = 0;
+    nums.forEach(xi => {
+      const u = (xVal - xi) / bw;
+      density += (1 / Math.sqrt(2 * Math.PI)) * Math.exp(-0.5 * u * u);
+    });
+    density = density / (n * bw); // 確率密度 f(x)
+    
+    // 度数スケール換算 (期待度数密度 = density * n * binWidth)
+    const scaledDensity = density * n * binWidth;
+    if (scaledDensity > kdeScaledMax) kdeScaledMax = scaledDensity;
+    kdePoints.push({ xVal, density, scaledDensity });
+  }
+
+  // Y軸上限
+  const peakVal = Math.max(maxBinCount, kdeScaledMax);
+  let yMax = Math.ceil(peakVal * 1.18);
+  if (yMax < 2) yMax = 2;
+
+  const padL = 26;
+  const padR = 12;
+  const padT = 16;
+  const padB = 14;
+  const chartW = width - padL - padR;
+  const chartH = height - padT - padB;
+
+  let svgInner = '';
+
+  // 1. Y軸度数グリッド線 & 基準線
+  const midCount = Math.round(yMax / 2);
+  const midY = padT + chartH - (midCount / yMax) * chartH;
+
+  // ベースライン (0)
+  svgInner += `<line x1="${padL}" y1="${padT + chartH}" x2="${padL + chartW}" y2="${padT + chartH}" stroke="#334155" stroke-width="1.2" />`;
+  // 中間度数破線
+  svgInner += `<line x1="${padL}" y1="${midY.toFixed(1)}" x2="${padL + chartW}" y2="${midY.toFixed(1)}" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="3,3" />`;
+  // 上端破線
+  svgInner += `<line x1="${padL}" y1="${padT}" x2="${padL + chartW}" y2="${padT}" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="2,2" />`;
+
+  // Y軸度数ラベル
+  svgInner += `<text x="${padL - 4}" y="${padT + chartH + 3}" font-size="7" fill="#475569" text-anchor="end">0</text>`;
+  svgInner += `<text x="${padL - 4}" y="${(midY + 3).toFixed(1)}" font-size="7" fill="#475569" text-anchor="end">${midCount}</text>`;
+  svgInner += `<text x="${padL - 4}" y="${padT + 3}" font-size="7" fill="#475569" text-anchor="end">${yMax}</text>`;
+
+  // 2. ヒストグラムの描画
+  const barWidth = chartW / numBins;
+  bins.forEach((count, i) => {
+    const barH = (count / yMax) * chartH;
+    const x = padL + i * barWidth + 1;
+    const y = padT + chartH - barH;
+    const w = Math.max(barWidth - 2, 2);
+
+    svgInner += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${barH.toFixed(1)}" fill="#f1f5f9" stroke="#334155" stroke-width="1.1" rx="1" />`;
+    if (count > 0) {
+      svgInner += `<text x="${(x + w / 2).toFixed(1)}" y="${(y - 2).toFixed(1)}" font-size="7.5" fill="#0f172a" text-anchor="middle" font-weight="700">${count}</text>`;
+    }
+  });
+
+  // 3. カーネル密度推定 (KDE) 曲線
+  let pathD = `M `;
+  kdePoints.forEach((pt, idx) => {
+    const x = padL + ((pt.xVal - min) / range) * chartW;
+    const y = padT + chartH - (pt.scaledDensity / yMax) * chartH;
+    pathD += `${idx === 0 ? '' : 'L '}${x.toFixed(1)},${y.toFixed(1)} `;
+  });
+
+  svgInner += `<path d="${pathD}" fill="none" stroke="#0f172a" stroke-width="1.8" stroke-linejoin="round" />`;
+
+  // 4. 平均値・中央値のリファレンス垂直線
+  const meanX = padL + Math.max(0, Math.min(1, (mean - min) / range)) * chartW;
+  const medianX = padL + Math.max(0, Math.min(1, (median - min) / range)) * chartW;
+  const closeTogether = Math.abs(meanX - medianX) < 40;
+
+  const getAnchor = (x) => {
+    if (x < padL + 20) return "start";
+    if (x > padL + chartW - 20) return "end";
+    return "middle";
+  };
+  let meanAnchor = getAnchor(meanX);
+  let medianAnchor = getAnchor(medianX);
+
+  let meanY = padT - 3;
+  let medianY = padT - 3;
+  if (closeTogether) {
+    if (meanX <= medianX) {
+      meanY = padT - 11;
+      medianY = padT - 1;
+      if (Math.abs(meanX - medianX) < 16) {
+        meanAnchor = "end";
+        medianAnchor = "start";
+      }
+    } else {
+      medianY = padT - 11;
+      meanY = padT - 1;
+      if (Math.abs(meanX - medianX) < 16) {
+        medianAnchor = "end";
+        meanAnchor = "start";
+      }
+    }
+  }
+
+  // 平均値線（黒破線）
+  svgInner += `<line x1="${meanX.toFixed(1)}" y1="${padT}" x2="${meanX.toFixed(1)}" y2="${padT + chartH}" stroke="#0f172a" stroke-width="1.3" stroke-dasharray="3,2" />`;
+  svgInner += `<text x="${meanX.toFixed(1)}" y="${meanY}" font-size="7" fill="#0f172a" text-anchor="${meanAnchor}" font-weight="700" paint-order="stroke fill" stroke="#ffffff" stroke-width="2.2" stroke-linejoin="round">平均:${valFmt(mean)}</text>`;
+
+  // 中央値線（濃灰破線）
+  svgInner += `<line x1="${medianX.toFixed(1)}" y1="${padT}" x2="${medianX.toFixed(1)}" y2="${padT + chartH}" stroke="#475569" stroke-width="1.3" stroke-dasharray="2,2" />`;
+  svgInner += `<text x="${medianX.toFixed(1)}" y="${medianY}" font-size="7" fill="#475569" text-anchor="${medianAnchor}" font-weight="700" paint-order="stroke fill" stroke="#ffffff" stroke-width="2.2" stroke-linejoin="round">中央:${valFmt(median)}</text>`;
+
+  // 5. X軸目盛りラベル
+  const unitLabel = unitStr ? ` (${unitStr})` : '';
+  svgInner += `<text x="${padL}" y="${height - 2}" text-anchor="start" font-size="6.8" font-weight="600" fill="#334155">最小: ${valFmt(min)}${unitLabel}</text>`;
+  svgInner += `<text x="${padL + chartW}" y="${height - 2}" text-anchor="end" font-size="6.8" font-weight="600" fill="#334155">最大: ${valFmt(max)}${unitLabel}</text>`;
+
+  return `
+  <svg viewBox="0 0 ${width} ${height}" width="100%" height="${height}" style="overflow:visible; display:block;">
+    ${svgInner}
+  </svg>`;
+}
+
+/* ==========================================================================
+   Municipalities Vertical Bar Chart Generator (40 Municipalities in Descending Order) - 元のツール仕様
+   ========================================================================== */
+function buildMuniVerticalBarChartSVG(sortedDescList, formatReportVal, axisUnitStr, width = 630, height = 200, mean = null, breaks = null, paletteKey = null) {
+  if (!sortedDescList || sortedDescList.length === 0) {
+    return `<svg width="${width}" height="${height}"><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="11" fill="#94a3b8">有効なデータがありません</text></svg>`;
+  }
+
+  const validVals = sortedDescList.map(item => item.val).filter(v => v !== null && v !== undefined && !isNaN(v));
+  const maxVal = validVals.length > 0 ? Math.max(...validVals) : 0;
+  const minVal = validVals.length > 0 ? Math.min(...validVals) : 0;
+
+  const padL = 44;
+  const padR = 12;
+  const padT = 18;
+  const padB = 62; // 市町村名ラベル用領域
+  const chartW = width - padL - padR;
+  const chartH = height - padT - padB;
+
+  const n = sortedDescList.length;
+  const colStep = chartW / n;
+  const barW = Math.max(5, Math.min(10.5, colStep - 3.2));
+
+  const hasNeg = minVal < 0;
+  let zeroY = padT + chartH;
+  if (hasNeg) {
+    zeroY = padT + (maxVal / (maxVal - minVal || 1)) * chartH;
+  }
+
+  let svgInner = '';
+
+  // 水平グリッド線 ＆ Y軸ラベル (0%, 25%, 50%, 75%, 100%)
+  const numGridLines = 4;
+  for (let i = 0; i <= numGridLines; i++) {
+    const ratio = i / numGridLines;
+    const y = padT + chartH * (1 - ratio);
+    const gridVal = hasNeg ? (minVal + (maxVal - minVal) * ratio) : (maxVal * ratio);
+
+    svgInner += `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${padL + chartW}" y2="${y.toFixed(1)}" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="${i === 0 ? 'none' : '2,2'}" />`;
+    svgInner += `<text x="${padL - 5}" y="${(y + 3).toFixed(1)}" text-anchor="end" font-size="7.2" font-family="ui-monospace, monospace" fill="#64748b">${formatReportVal(gridVal)}</text>`;
+  }
+
+  // 平均値基準線
+  if (mean !== null && !isNaN(mean)) {
+    let meanY;
+    if (hasNeg) {
+      meanY = padT + ((maxVal - mean) / (maxVal - minVal || 1)) * chartH;
+    } else {
+      meanY = padT + chartH - (mean / (maxVal || 1)) * chartH;
+    }
+    if (meanY >= padT && meanY <= padT + chartH) {
+      svgInner += `<line x1="${padL}" y1="${meanY.toFixed(1)}" x2="${padL + chartW}" y2="${meanY.toFixed(1)}" stroke="#dc2626" stroke-width="1.2" stroke-dasharray="4,2" />`;
+      svgInner += `<text x="${padL + chartW - 2}" y="${(meanY - 3).toFixed(1)}" text-anchor="end" font-size="7.5" font-weight="700" fill="#dc2626" paint-order="stroke fill" stroke="#ffffff" stroke-width="2.5" stroke-linejoin="round">平均: ${formatReportVal(mean)}</text>`;
+    }
+  }
+
+  // 40本の垂直バーと市町村名ラベル
+  sortedDescList.forEach((item, idx) => {
+    const rank = idx + 1;
+    const name = item.muni;
+    const val = item.val;
+    const color = (val !== null && !isNaN(val) && breaks) ? getColorForValue(val, breaks, paletteKey) : "#cbd5e1";
+
+    const cx = padL + colStep * idx + colStep / 2;
+    const x = cx - barW / 2;
+
+    let barY = zeroY;
+    let barH = 0;
+
+    if (val !== null && !isNaN(val)) {
+      if (!hasNeg) {
+        barH = maxVal > 0 ? (val / maxVal) * chartH : 0;
+        barY = padT + chartH - barH;
+      } else {
+        if (val >= 0) {
+          barH = ((val) / (maxVal - minVal || 1)) * chartH;
+          barY = zeroY - barH;
+        } else {
+          barH = (Math.abs(val) / (maxVal - minVal || 1)) * chartH;
+          barY = zeroY;
+        }
+      }
+    }
+
+    barH = Math.max(1.5, barH);
+
+    // バー矩形（最小階級が白色でもくっきり見えるよう濃いグレーで縁取り）
+    svgInner += `<rect x="${x.toFixed(1)}" y="${barY.toFixed(1)}" width="${barW.toFixed(1)}" height="${barH.toFixed(1)}" rx="1.5" ry="1.5" fill="${color}" stroke="#334155" stroke-width="0.9">
+      <title>${rank}位: ${name} (${formatReportVal(val)})</title>
+    </rect>`;
+
+    // 市町村名（縦書き・90度回転で美しく下部に整列）
+    const labelY = padT + chartH + 7;
+    svgInner += `<text x="${cx.toFixed(1)}" y="${labelY}" transform="rotate(90, ${cx.toFixed(1)}, ${labelY})" text-anchor="start" font-size="8.2" font-weight="600" fill="#1e293b" letter-spacing="-0.02em">${name}</text>`;
+  });
+
+  return `
+    <svg viewBox="0 0 ${width} ${height}" width="100%" height="${height}" style="overflow:hidden; max-height:100%; display:block;">
+      ${svgInner}
+    </svg>
+  `;
+}
+
 function openReportModal() {
   const currentVar = STATS_DATA.find(v => v.id === state.activeVarId);
   if (!currentVar) return;
@@ -882,41 +1166,60 @@ function openReportModal() {
   }
   document.getElementById("rep-legend-items").innerHTML = legendItems;
 
-  document.getElementById("rep-stat-count").textContent = `${stats.count} / 40 市町村`;
+  // 基本統計サマリー表
+  document.getElementById("rep-stat-count").textContent = `${stats.count} / 40`;
   
   // 比率データ（人口1,000人あたり）のときは合計値を対象外表示にする
   if (state.isPerCapita) {
-    document.getElementById("rep-stat-sum").innerHTML = `- <span style="font-size:0.65rem; color:#64748b; font-weight:normal;">(対象外)</span>`;
+    document.getElementById("rep-stat-sum").innerHTML = `- <span style="font-size:0.62rem; color:#64748b; font-weight:normal;">(対象外)</span>`;
   } else {
     document.getElementById("rep-stat-sum").textContent = formatNum(stats.sum);
   }
 
   document.getElementById("rep-stat-mean").textContent = formatNum(stats.mean);
   document.getElementById("rep-stat-median").textContent = formatNum(stats.median);
-  document.getElementById("rep-stat-max").innerHTML = `<strong>${formatNum(stats.max.val)}</strong> <span style="color:#64748b; font-size:0.68rem;">(${stats.max.muni})</span>`;
-  document.getElementById("rep-stat-min").innerHTML = `<strong>${formatNum(stats.min.val)}</strong> <span style="color:#64748b; font-size:0.68rem;">(${stats.min.muni})</span>`;
+  document.getElementById("rep-stat-max").innerHTML = `${formatNum(stats.max.val)}<span class="muni-tag">(${stats.max.muni})</span>`;
+  document.getElementById("rep-stat-min").innerHTML = `${formatNum(stats.min.val)}<span class="muni-tag">(${stats.min.muni})</span>`;
+  document.getElementById("rep-stat-sd").textContent = formatNum(stats.stdDev);
+  document.getElementById("rep-stat-iqr").textContent = formatNum(stats.iqr);
 
-  const top5 = stats.sorted.slice(0, 5);
-  document.getElementById("rep-rank-top-list").innerHTML = top5.map((item, idx) => `
-    <div class="rep-rank-item">
-      <span><strong>${idx + 1}. ${item.muni}</strong></span>
-      <span>${formatNum(item.val)}</span>
-    </div>
-  `).join("");
+  const statSubEl = document.getElementById("rep-stat-subtitle");
+  if (statSubEl) {
+    statSubEl.textContent = state.isPerCapita ? "(人口1,000人対)" : "(実測値)";
+  }
 
-  const btm5 = stats.sorted.slice(-5).reverse();
-  document.getElementById("rep-rank-btm-list").innerHTML = btm5.map(item => `
-    <div class="rep-rank-item">
-      <span>${stats.ranks[item.muni]}. ${item.muni}</span>
-      <span>${formatNum(item.val)}</span>
-    </div>
-  `).join("");
+  const statNoteEl = document.getElementById("rep-stat-note");
+  if (statNoteEl) {
+    statNoteEl.innerHTML = state.isPerCapita
+      ? `※平均値は各市町村の単純算術平均（人口加重なし）<br>※人口補正基準: 令和2年(2020年)国勢調査確定人口`
+      : "";
+  }
+
+  // 中段右: データ分布 (KDE + ヒストグラム)
+  const distModeLabel = document.getElementById("rep-dist-mode-label");
+  if (distModeLabel) {
+    distModeLabel.textContent = state.isPerCapita ? "(1,000人あたり)" : "(実測値)";
+  }
+  const distSvgWrap = document.getElementById("rep-dist-render-target");
+  if (distSvgWrap) {
+    distSvgWrap.innerHTML = buildReportDistributionSVG(stats.numList, stats.min.val, stats.mean, stats.median, stats.max.val, 310, 96, effective.unit, formatNum);
+  }
+
+  // 下段: 40市町村 棒グラフ (多い順)
+  const barUnitLabel = document.getElementById("rep-bar-unit-label");
+  if (barUnitLabel) {
+    barUnitLabel.textContent = effective.unit ? `[${effective.unit}]` : (state.isPerCapita ? "(1,000人あたり)" : "(実測値)");
+  }
+  const vbarSvgWrap = document.getElementById("rep-vbar-render-target");
+  if (vbarSvgWrap) {
+    vbarSvgWrap.innerHTML = buildMuniVerticalBarChartSVG(stats.sorted, formatNum, effective.unit, 630, 200, stats.mean, breaks, state.activePalette);
+  }
 
   const footerNote = document.getElementById("rep-footer-note");
   if (footerNote) {
     footerNote.textContent = state.isPerCapita
-      ? "※人口1,000人あたり値は各市町村の数値を令和2年(2020年)国勢調査人口で除算し1,000倍した値です。"
-      : "※本レポートは「青森県 市町村データ100 かんたんマップ」により自動生成されました。";
+      ? "分析対象: 青森県全40市町村（令和2年国勢調査人口による人口1,000人あたり換算値）"
+      : "分析対象: 青森県全40市町村（40市町村の有効データを集計）";
   }
 
   document.getElementById("report-modal").classList.remove("hidden");
