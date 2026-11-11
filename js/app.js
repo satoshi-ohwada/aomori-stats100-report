@@ -875,11 +875,6 @@ function initUI() {
     btnModeRaw.classList.toggle("active", !isPerCapita);
     btnMode1000.classList.toggle("active", isPerCapita);
 
-    const badge = document.getElementById("active-var-transform-badge");
-    if (badge) {
-      badge.style.display = isPerCapita ? "inline-block" : "none";
-    }
-
     updateLeafletMap();
     updateInfoPanels();
   }
@@ -1141,8 +1136,19 @@ function updateInfoPanels() {
   const effective = getEffectiveData(currentVar);
   const stats = state.currentStats || computeStats(effective);
 
-  document.getElementById("active-var-title-text").textContent = currentVar.name;
-  document.getElementById("active-var-unit-pill").textContent = effective.unit ? `単位: ${effective.unit}` : "単位なし";
+  const titleEl = document.getElementById("active-var-title-text");
+  if (titleEl) {
+    titleEl.textContent = currentVar.name;
+    titleEl.title = currentVar.name; // ホバーで正式名称全文を確認可能
+  }
+  const numBadge = document.getElementById("active-var-num-badge");
+  if (numBadge) {
+    numBadge.textContent = `No.${currentVar.num}`;
+  }
+  const unitPill = document.getElementById("active-var-unit-pill");
+  if (unitPill) {
+    unitPill.textContent = effective.unit ? `単位: ${effective.unit}` : "単位なし";
+  }
 
   document.getElementById("selected-var-num").textContent = `No.${currentVar.num} [${currentVar.category}]`;
   document.getElementById("selected-var-name").textContent = currentVar.name;
@@ -1627,11 +1633,6 @@ function openReportModal() {
 
   document.getElementById("rep-target-var-name").textContent = currentVar.name;
   document.getElementById("rep-unit-text").textContent = effective.unit ? `（単位: ${effective.unit}）` : "";
-  
-  const repBadge = document.getElementById("rep-per-capita-badge");
-  if (repBadge) {
-    repBadge.style.display = state.isPerCapita ? "inline-block" : "none";
-  }
 
   document.getElementById("rep-date-text").textContent = `作成日: ${dateStr}`;
   

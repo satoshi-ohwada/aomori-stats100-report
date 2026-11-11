@@ -565,20 +565,21 @@ body {
   cursor: pointer !important;
 }
 
-/* Floating Indicator Title Badge on Top-Left */
+/* Floating Indicator Title Badge on Top-Left (大間町・風間浦村を隠さないコンパクト2段設計) */
 .map-floating-header {
   position: absolute;
   top: 12px;
   left: 12px;
+  max-width: min(300px, 34vw);
   background: rgba(255, 255, 255, 0.94);
   backdrop-filter: blur(8px);
   border: 1px solid rgba(226, 232, 240, 0.9);
   border-radius: var(--radius-md);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  padding: 6px 12px;
+  padding: 5px 10px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   z-index: 500;
 }
 
@@ -586,13 +587,14 @@ body {
   background: #ffffff;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
-  padding: 4px 8px;
+  padding: 5px 7px;
   font-size: 0.8rem;
   color: var(--text-muted);
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+  flex-shrink: 0;
   transition: all 0.15s;
 }
 
@@ -602,32 +604,50 @@ body {
   border-color: #cbd5e1;
 }
 
+.active-var-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  overflow: hidden;
+}
+
 .active-var-title {
-  font-size: 0.95rem;
+  font-size: 0.84rem;
   font-weight: 700;
   color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.25;
+}
+
+.active-var-meta {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
+  line-height: 1;
+}
+
+.active-var-num {
+  font-size: 0.65rem;
+  font-weight: 700;
+  background: #e0e7ff;
+  color: #3730a3;
+  padding: 1px 5px;
+  border-radius: 4px;
+  flex-shrink: 0;
 }
 
 .unit-pill {
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 600;
-  background: #e2e8f0;
-  color: #334155;
-  padding: 1px 6px;
-  border-radius: 8px;
-}
-
-.per-capita-badge {
-  font-size: 0.7rem;
-  font-weight: 700;
-  background: #fef3c7;
-  color: #b45309;
-  border: 1px solid #fde68a;
-  padding: 1px 6px;
-  border-radius: 8px;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+  padding: 0.5px 5px;
+  border-radius: 4px;
+  white-space: nowrap;
 }
 
 /* Floating Actions on Top-Right */

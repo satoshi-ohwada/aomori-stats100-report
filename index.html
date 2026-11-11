@@ -225,10 +225,12 @@
         <button id="btn-toggle-sidebar" class="btn-sidebar-toggle" title="サイドバーを開閉して地図を全画面化">
           <i class="fa-solid fa-bars"></i>
         </button>
-        <div class="active-var-title">
-          <span id="active-var-title-text">人口（人）</span>
-          <span id="active-var-unit-pill" class="unit-pill">単位: 人</span>
-          <span id="active-var-transform-badge" class="per-capita-badge" style="display:none;">人口1,000人あたり</span>
+        <div class="active-var-info">
+          <div id="active-var-title-text" class="active-var-title" title="人口（人）">人口（人）</div>
+          <div class="active-var-meta">
+            <span id="active-var-num-badge" class="active-var-num">No.2</span>
+            <span id="active-var-unit-pill" class="unit-pill">単位: 人</span>
+          </div>
         </div>
       </div>
       
@@ -352,7 +354,6 @@
               <div class="rep-sub">
                 <strong id="rep-target-var-name" style="font-size:1.05rem; color:#2563eb;">人口（人）</strong>
                 <span id="rep-unit-text" style="color:#475569; font-size:0.80rem;">（単位: 人）</span>
-                <span id="rep-per-capita-badge" class="per-capita-badge" style="display:none;">人口1,000人あたり</span>
               </div>
             </div>
             <div class="rep-meta">

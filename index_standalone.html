@@ -581,20 +581,21 @@ body {
   cursor: pointer !important;
 }
 
-/* Floating Indicator Title Badge on Top-Left */
+/* Floating Indicator Title Badge on Top-Left (大間町・風間浦村を隠さないコンパクト2段設計) */
 .map-floating-header {
   position: absolute;
   top: 12px;
   left: 12px;
+  max-width: min(300px, 34vw);
   background: rgba(255, 255, 255, 0.94);
   backdrop-filter: blur(8px);
   border: 1px solid rgba(226, 232, 240, 0.9);
   border-radius: var(--radius-md);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  padding: 6px 12px;
+  padding: 5px 10px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   z-index: 500;
 }
 
@@ -602,13 +603,14 @@ body {
   background: #ffffff;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
-  padding: 4px 8px;
+  padding: 5px 7px;
   font-size: 0.8rem;
   color: var(--text-muted);
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+  flex-shrink: 0;
   transition: all 0.15s;
 }
 
@@ -618,32 +620,50 @@ body {
   border-color: #cbd5e1;
 }
 
+.active-var-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  overflow: hidden;
+}
+
 .active-var-title {
-  font-size: 0.95rem;
+  font-size: 0.84rem;
   font-weight: 700;
   color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.25;
+}
+
+.active-var-meta {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
+  line-height: 1;
+}
+
+.active-var-num {
+  font-size: 0.65rem;
+  font-weight: 700;
+  background: #e0e7ff;
+  color: #3730a3;
+  padding: 1px 5px;
+  border-radius: 4px;
+  flex-shrink: 0;
 }
 
 .unit-pill {
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 600;
-  background: #e2e8f0;
-  color: #334155;
-  padding: 1px 6px;
-  border-radius: 8px;
-}
-
-.per-capita-badge {
-  font-size: 0.7rem;
-  font-weight: 700;
-  background: #fef3c7;
-  color: #b45309;
-  border: 1px solid #fde68a;
-  padding: 1px 6px;
-  border-radius: 8px;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+  padding: 0.5px 5px;
+  border-radius: 4px;
+  white-space: nowrap;
 }
 
 /* Floating Actions on Top-Right */
@@ -1807,10 +1827,12 @@ body {
         <button id="btn-toggle-sidebar" class="btn-sidebar-toggle" title="サイドバーを開閉して地図を全画面化">
           <i class="fa-solid fa-bars"></i>
         </button>
-        <div class="active-var-title">
-          <span id="active-var-title-text">人口（人）</span>
-          <span id="active-var-unit-pill" class="unit-pill">単位: 人</span>
-          <span id="active-var-transform-badge" class="per-capita-badge" style="display:none;">人口1,000人あたり</span>
+        <div class="active-var-info">
+          <div id="active-var-title-text" class="active-var-title" title="人口（人）">人口（人）</div>
+          <div class="active-var-meta">
+            <span id="active-var-num-badge" class="active-var-num">No.2</span>
+            <span id="active-var-unit-pill" class="unit-pill">単位: 人</span>
+          </div>
         </div>
       </div>
       
@@ -1934,7 +1956,6 @@ body {
               <div class="rep-sub">
                 <strong id="rep-target-var-name" style="font-size:1.05rem; color:#2563eb;">人口（人）</strong>
                 <span id="rep-unit-text" style="color:#475569; font-size:0.80rem;">（単位: 人）</span>
-                <span id="rep-per-capita-badge" class="per-capita-badge" style="display:none;">人口1,000人あたり</span>
               </div>
             </div>
             <div class="rep-meta">
@@ -8292,11 +8313,6 @@ function initUI() {
     btnModeRaw.classList.toggle("active", !isPerCapita);
     btnMode1000.classList.toggle("active", isPerCapita);
 
-    const badge = document.getElementById("active-var-transform-badge");
-    if (badge) {
-      badge.style.display = isPerCapita ? "inline-block" : "none";
-    }
-
     updateLeafletMap();
     updateInfoPanels();
   }
@@ -8558,8 +8574,19 @@ function updateInfoPanels() {
   const effective = getEffectiveData(currentVar);
   const stats = state.currentStats || computeStats(effective);
 
-  document.getElementById("active-var-title-text").textContent = currentVar.name;
-  document.getElementById("active-var-unit-pill").textContent = effective.unit ? `単位: ${effective.unit}` : "単位なし";
+  const titleEl = document.getElementById("active-var-title-text");
+  if (titleEl) {
+    titleEl.textContent = currentVar.name;
+    titleEl.title = currentVar.name; // ホバーで正式名称全文を確認可能
+  }
+  const numBadge = document.getElementById("active-var-num-badge");
+  if (numBadge) {
+    numBadge.textContent = `No.${currentVar.num}`;
+  }
+  const unitPill = document.getElementById("active-var-unit-pill");
+  if (unitPill) {
+    unitPill.textContent = effective.unit ? `単位: ${effective.unit}` : "単位なし";
+  }
 
   document.getElementById("selected-var-num").textContent = `No.${currentVar.num} [${currentVar.category}]`;
   document.getElementById("selected-var-name").textContent = currentVar.name;
@@ -9044,11 +9071,6 @@ function openReportModal() {
 
   document.getElementById("rep-target-var-name").textContent = currentVar.name;
   document.getElementById("rep-unit-text").textContent = effective.unit ? `（単位: ${effective.unit}）` : "";
-  
-  const repBadge = document.getElementById("rep-per-capita-badge");
-  if (repBadge) {
-    repBadge.style.display = state.isPerCapita ? "inline-block" : "none";
-  }
 
   document.getElementById("rep-date-text").textContent = `作成日: ${dateStr}`;
   
