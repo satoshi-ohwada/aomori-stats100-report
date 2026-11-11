@@ -255,48 +255,6 @@ body {
   background: #fff;
 }
 
-/* Quick Pick Tags */
-.quick-picks-wrapper {
-  margin-bottom: 10px;
-}
-
-.quick-picks-label {
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  margin-bottom: 4px;
-}
-
-.quick-picks-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-}
-
-.quick-tag {
-  background: #f1f5f9;
-  color: #334155;
-  border: 1px solid #e2e8f0;
-  font-size: 0.72rem;
-  padding: 2px 7px;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  white-space: nowrap;
-}
-
-.quick-tag:hover {
-  background: var(--primary-light);
-  color: var(--primary);
-  border-color: #bfdbfe;
-}
-
-.quick-tag.active {
-  background: var(--primary);
-  color: white;
-  border-color: var(--primary);
-  font-weight: 600;
-}
-
 /* Search input */
 .search-wrapper {
   position: relative;

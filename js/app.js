@@ -68,17 +68,6 @@ const PALETTES = {
   }
 };
 
-// 代表的な人気指標（クイックピック用）
-const QUICK_PICKS = [
-  { id: "var_2", label: "人口" },
-  { id: "var_3", label: "人口密度" },
-  { id: "var_28", label: "製造業粗付加価値額" },
-  { id: "var_57", label: "1人当たり所得" },
-  { id: "var_69", label: "医師数(10万人対)" },
-  { id: "var_86", label: "大学進学率" },
-  { id: "var_104", label: "財政力指数" }
-];
-
 // アプリケーション状態
 const state = {
   activeVarId: "var_2", // 初期指標: 人口
@@ -851,23 +840,9 @@ function updateLegendUI(breaks, unit) {
 function initUI() {
   const catSelect = document.getElementById("cat-select");
   const searchInput = document.getElementById("search-input");
-  const quickPicksContainer = document.getElementById("quick-picks-container");
 
   const categories = ["すべての分野", ...new Set(STATS_DATA.map(d => d.category))];
   catSelect.innerHTML = categories.map(cat => `<option value="${cat}">${cat}</option>`).join("");
-
-  quickPicksContainer.innerHTML = QUICK_PICKS.map(p => `
-    <button class="quick-tag ${p.id === state.activeVarId ? 'active' : ''}" data-id="${p.id}">
-      ${p.label}
-    </button>
-  `).join("");
-
-  quickPicksContainer.addEventListener("click", e => {
-    const btn = e.target.closest(".quick-tag");
-    if (!btn) return;
-    const id = btn.getAttribute("data-id");
-    selectVariable(id);
-  });
 
   catSelect.addEventListener("change", () => {
     filterVariables();
@@ -1129,10 +1104,6 @@ function selectVariable(varId, scrollIntoView = true) {
     if (isSelected && scrollIntoView) {
       el.scrollIntoView({ block: "nearest", behavior: "smooth" });
     }
-  });
-
-  document.querySelectorAll(".quick-tag").forEach(el => {
-    el.classList.toggle("active", el.getAttribute("data-id") === varId);
   });
 
   syncSliderUI();

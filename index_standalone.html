@@ -271,48 +271,6 @@ body {
   background: #fff;
 }
 
-/* Quick Pick Tags */
-.quick-picks-wrapper {
-  margin-bottom: 10px;
-}
-
-.quick-picks-label {
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  margin-bottom: 4px;
-}
-
-.quick-picks-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-}
-
-.quick-tag {
-  background: #f1f5f9;
-  color: #334155;
-  border: 1px solid #e2e8f0;
-  font-size: 0.72rem;
-  padding: 2px 7px;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  white-space: nowrap;
-}
-
-.quick-tag:hover {
-  background: var(--primary-light);
-  color: var(--primary);
-  border-color: #bfdbfe;
-}
-
-.quick-tag.active {
-  background: var(--primary);
-  color: white;
-  border-color: var(--primary);
-  font-weight: 600;
-}
-
 /* Search input */
 .search-wrapper {
   position: relative;
@@ -1723,12 +1681,6 @@ body {
         
         <!-- Category Filter -->
         <select id="cat-select" class="cat-select" title="分野で絞り込み"></select>
-
-        <!-- Quick Pick Tags -->
-        <div class="quick-picks-wrapper">
-          <div class="quick-picks-label">人気の代表指標:</div>
-          <div id="quick-picks-container" class="quick-picks-container"></div>
-        </div>
 
         <!-- Search Input -->
         <div class="search-wrapper">
@@ -7583,17 +7535,6 @@ const PALETTES = {
   }
 };
 
-// 代表的な人気指標（クイックピック用）
-const QUICK_PICKS = [
-  { id: "var_2", label: "人口" },
-  { id: "var_3", label: "人口密度" },
-  { id: "var_28", label: "製造業粗付加価値額" },
-  { id: "var_57", label: "1人当たり所得" },
-  { id: "var_69", label: "医師数(10万人対)" },
-  { id: "var_86", label: "大学進学率" },
-  { id: "var_104", label: "財政力指数" }
-];
-
 // アプリケーション状態
 const state = {
   activeVarId: "var_2", // 初期指標: 人口
@@ -8366,23 +8307,9 @@ function updateLegendUI(breaks, unit) {
 function initUI() {
   const catSelect = document.getElementById("cat-select");
   const searchInput = document.getElementById("search-input");
-  const quickPicksContainer = document.getElementById("quick-picks-container");
 
   const categories = ["すべての分野", ...new Set(STATS_DATA.map(d => d.category))];
   catSelect.innerHTML = categories.map(cat => `<option value="${cat}">${cat}</option>`).join("");
-
-  quickPicksContainer.innerHTML = QUICK_PICKS.map(p => `
-    <button class="quick-tag ${p.id === state.activeVarId ? 'active' : ''}" data-id="${p.id}">
-      ${p.label}
-    </button>
-  `).join("");
-
-  quickPicksContainer.addEventListener("click", e => {
-    const btn = e.target.closest(".quick-tag");
-    if (!btn) return;
-    const id = btn.getAttribute("data-id");
-    selectVariable(id);
-  });
 
   catSelect.addEventListener("change", () => {
     filterVariables();
@@ -8644,10 +8571,6 @@ function selectVariable(varId, scrollIntoView = true) {
     if (isSelected && scrollIntoView) {
       el.scrollIntoView({ block: "nearest", behavior: "smooth" });
     }
-  });
-
-  document.querySelectorAll(".quick-tag").forEach(el => {
-    el.classList.toggle("active", el.getAttribute("data-id") === varId);
   });
 
   syncSliderUI();
