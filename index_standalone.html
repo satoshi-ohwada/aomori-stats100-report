@@ -7671,16 +7671,17 @@ function hexToRgb(hex) {
   return [ (num >> 16) & 255, (num >> 8) & 255, num & 255 ];
 }
 
-// 市町村境界線スタイル計算（塗りの明度に応じて白またはスレートグレーで中間の絶妙な視認性に調整）
+// 市町村境界線スタイル計算（濃い色および2番目に濃い色では白線にし、見やすい視認性に最適化）
 function getBorderStrokeForFeature(fillColor) {
   if (!fillColor || fillColor === "transparent") {
     return { color: "#475569", weight: 1.2 };
   }
   const rgb = hexToRgb(fillColor || "#ffffff");
   const lum = 0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2];
-  const isVeryDark = (lum < 60);
+  // 5段階パレットの第4階級（2番目に濃い色: lum約96〜123）および第5階級（最も濃い色: lum約58〜79）で白線に切替
+  const isDarkOrSecondDark = (lum < 135);
 
-  if (isVeryDark) {
+  if (isDarkOrSecondDark) {
     return { color: "#ffffff", weight: 1.5 };
   }
   return { color: "#475569", weight: 1.15 };
