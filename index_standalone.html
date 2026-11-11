@@ -1781,13 +1781,13 @@ body {
             <i class="fa-solid fa-hashtag"></i>
             <span>実測値</span>
           </button>
-          <button id="btn-mode-1000" class="per-capita-btn" data-mode="1000" title="令和2年国勢調査人口で割って1,000人あたりに変換します">
+          <button id="btn-mode-1000" class="per-capita-btn" data-mode="1000" title="令和7年国勢調査人口で割って1,000人あたりに変換します">
             <i class="fa-solid fa-users"></i>
             <span>人口1,000人あたり</span>
           </button>
         </div>
         <div class="per-capita-note">
-          ※令和2年(2020年)国勢調査人口を用いて自治体の人口規模差を補正します
+          ※令和7年(2025年)国勢調査人口を用いて自治体の人口規模差を補正します
         </div>
       </div>
 
@@ -7518,49 +7518,50 @@ const STATS_DATA = [
  * Application Logic
  */
 
-// 令和2年(2020年)国勢調査確定人口マスター（青森県40市町村）
-const CENSUS_POPULATION_2020 = {
-  "青森市": 275192,
-  "弘前市": 168466,
-  "八戸市": 223415,
-  "黒石市": 31946,
-  "五所川原市": 51415,
-  "十和田市": 60378,
-  "三沢市": 39152,
-  "むつ市": 54103,
-  "つがる市": 30934,
-  "平川市": 30567,
-  "平内町": 10126,
-  "今別町": 2334,
-  "蓬田村": 2540,
-  "外ヶ浜町": 5401,
-  "鰺ヶ沢町": 9044,
-  "深浦町": 7346,
-  "西目屋村": 1265,
-  "藤崎町": 14573,
-  "大鰐町": 8665,
-  "田舎館村": 7326,
-  "板柳町": 12700,
-  "鶴田町": 12074,
-  "中泊町": 9657,
-  "野辺地町": 12374,
-  "七戸町": 14556,
-  "六戸町": 10447,
-  "横浜町": 4229,
-  "東北町": 16428,
-  "六ヶ所村": 10367,
-  "おいらせ町": 24273,
-  "大間町": 4718,
-  "東通村": 5955,
-  "風間浦村": 1636,
-  "佐井村": 1788,
-  "三戸町": 9082,
-  "五戸町": 16042,
-  "田子町": 4968,
-  "南部町": 16809,
-  "階上町": 13496,
-  "新郷村": 2197
+// 令和7年(2025年)国勢調査確定人口マスター（青森県40市町村）
+const CENSUS_POPULATION_2025 = {
+  "青森市": 255953,
+  "弘前市": 155880,
+  "八戸市": 205130,
+  "黒石市": 28873,
+  "五所川原市": 47462,
+  "十和田市": 56718,
+  "三沢市": 37090,
+  "むつ市": 49674,
+  "つがる市": 27025,
+  "平川市": 28708,
+  "平内町": 9121,
+  "今別町": 1888,
+  "蓬田村": 2254,
+  "外ヶ浜町": 4510,
+  "鰺ヶ沢町": 7745,
+  "深浦町": 6259,
+  "西目屋村": 1121,
+  "藤崎町": 14094,
+  "大鰐町": 7601,
+  "田舎館村": 6846,
+  "板柳町": 11518,
+  "鶴田町": 10750,
+  "中泊町": 8154,
+  "野辺地町": 11173,
+  "七戸町": 13098,
+  "六戸町": 9948,
+  "横浜町": 3818,
+  "東北町": 14870,
+  "六ヶ所村": 10553,
+  "おいらせ町": 23652,
+  "大間町": 4088,
+  "東通村": 5189,
+  "風間浦村": 1381,
+  "佐井村": 1467,
+  "三戸町": 7955,
+  "五戸町": 14318,
+  "田子町": 4343,
+  "南部町": 15174,
+  "階上町": 12211,
+  "新郷村": 1849
 };
+const CENSUS_POPULATION_2020 = CENSUS_POPULATION_2025; // 互換性のためのエイリアス
 
 // カラーパレット定義（5段階）
 const PALETTES = {
@@ -7700,10 +7701,10 @@ function getEffectiveData(varItem) {
     };
   }
 
-  // 人口1,000人あたり変換: (val / pop2020) * 1000
+  // 人口1,000人あたり変換: (val / pop2025) * 1000
   const transformed = {};
   for (const [muni, val] of Object.entries(varItem.data)) {
-    const pop = CENSUS_POPULATION_2020[muni];
+    const pop = CENSUS_POPULATION_2025[muni];
     if (val !== null && val !== undefined && !isNaN(val) && typeof pop === 'number' && pop > 0) {
       transformed[muni] = (val / pop) * 1000;
     } else {
@@ -8126,7 +8127,7 @@ function updateLeafletMap() {
       let popInfo = "";
       if (state.isPerCapita) {
         const rawVal = currentVar.data[muniName];
-        popInfo = `<div style="font-size:0.72rem; color:#64748b; margin-top:2px;">(実測値: ${formatNum(rawVal)} ${currentVar.unit || ''} / 2020年人口: ${formatNum(CENSUS_POPULATION_2020[muniName])}人)</div>`;
+        popInfo = `<div style="font-size:0.72rem; color:#64748b; margin-top:2px;">(実測値: ${formatNum(rawVal)} ${currentVar.unit || ''} / 2025年人口: ${formatNum(CENSUS_POPULATION_2025[muniName])}人)</div>`;
       }
 
       layer.bindTooltip(`
@@ -9203,7 +9204,7 @@ function openReportModal() {
   
   let sourceText = currentVar.source || "令和8年 青森県統計年鑑";
   if (state.isPerCapita) {
-    sourceText += "（※人口補正基準: 令和2年国勢調査確定人口）";
+    sourceText += "（※人口補正基準: 令和7年国勢調査確定人口）";
   }
   document.getElementById("rep-source-text").textContent = sourceText;
 
@@ -9251,7 +9252,7 @@ function openReportModal() {
   const statNoteEl = document.getElementById("rep-stat-note");
   if (statNoteEl) {
     statNoteEl.innerHTML = state.isPerCapita
-      ? `※平均値は各市町村の単純算術平均（人口加重なし）<br>※人口補正基準: 令和2年(2020年)国勢調査確定人口`
+      ? `※平均値は各市町村の単純算術平均（人口加重なし）<br>※人口補正基準: 令和7年(2025年)国勢調査確定人口`
       : "";
   }
 
@@ -9278,7 +9279,7 @@ function openReportModal() {
   const footerNote = document.getElementById("rep-footer-note");
   if (footerNote) {
     footerNote.textContent = state.isPerCapita
-      ? "分析対象: 青森県全40市町村（令和2年国勢調査人口による人口1,000人あたり換算値）"
+      ? "分析対象: 青森県全40市町村（令和7年国勢調査人口による人口1,000人あたり換算値）"
       : "分析対象: 青森県全40市町村（40市町村の有効データを集計）";
   }
 
