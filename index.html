@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="vendor/css/leaflet.css">
   
   <!-- App Styles -->
-  <link rel="stylesheet" href="css/style.css?v=20261112_rep">
+  <link rel="stylesheet" href="css/style.css?v=20261112_leg">
 </head>
 <body>
 
@@ -380,14 +380,10 @@
           <!-- Report Main Body (Portrait: 上段地図・中段サマリー&分布・下段40市町村棒グラフ) -->
           <main class="rep-body-portrait">
             
-            <!-- 上段: 最大化ベクター地図 & 凡例 -->
+            <!-- 上段: 最大化ベクター地図（地図内インセット凡例付き） -->
             <section class="rep-portrait-map-section">
               <div class="rep-map-frame">
                 <div id="rep-map-render-target"></div>
-              </div>
-              <div class="rep-legend-box">
-                <span style="font-weight:700; color:#334155;">【階級凡例】</span>
-                <div id="rep-legend-items" style="display:flex; gap:10px; align-items:center;"></div>
               </div>
             </section>
 
@@ -488,7 +484,7 @@
   <!-- App Data & Scripts -->
   <script src="js/geojson.js"></script>
   <script src="js/data.js"></script>
-  <script src="js/app.js?v=20261112_borders"></script>
+  <script src="js/app.js?v=20261112_leg"></script>
 
 </body>
 </html>

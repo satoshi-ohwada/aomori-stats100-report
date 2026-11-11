@@ -2048,14 +2048,10 @@ body {
           <!-- Report Main Body (Portrait: 上段地図・中段サマリー&分布・下段40市町村棒グラフ) -->
           <main class="rep-body-portrait">
             
-            <!-- 上段: 最大化ベクター地図 & 凡例 -->
+            <!-- 上段: 最大化ベクター地図（地図内インセット凡例付き） -->
             <section class="rep-portrait-map-section">
               <div class="rep-map-frame">
                 <div id="rep-map-render-target"></div>
-              </div>
-              <div class="rep-legend-box">
-                <span style="font-weight:700; color:#334155;">【階級凡例】</span>
-                <div id="rep-legend-items" style="display:flex; gap:10px; align-items:center;"></div>
               </div>
             </section>
 
@@ -8857,11 +8853,51 @@ function renderReportSvgMap(varItem, breaks, paletteKey) {
     });
   }
 
+  // 4. 地図内 階級凡例（Map Inset Legend: 左上・北西日本海沖の広大なオープンスペースに配置）
+  const legColors = PALETTES[paletteKey].colors;
+  const legUnitStr = effective.unit ? ` (${effective.unit})` : "";
+  const isUniform = breaks && breaks.length >= 2 && breaks[0] === breaks[breaks.length - 1];
+
+  const legX = 14;
+  const legY = 14;
+  const legW = 98;
+  const rowH = 11.2;
+  const legH = isUniform ? 36.0 : (23.0 + legColors.length * rowH);
+
+  let legendSvg = `
+    <g class="rep-map-legend" transform="translate(${legX}, ${legY})" pointer-events="none">
+      <rect x="0" y="0" width="${legW}" height="${legH.toFixed(1)}" rx="4" ry="4" fill="#ffffff" fill-opacity="0.95" stroke="#94a3b8" stroke-width="0.8" stroke-opacity="0.85"/>
+      <text x="8" y="11.5" font-size="6.4" font-weight="700" fill="#1e293b">階級凡例${legUnitStr}</text>
+      <line x1="8" y1="14.5" x2="${legW - 8}" y2="14.5" stroke="#cbd5e1" stroke-width="0.5"/>
+  `;
+
+  if (isUniform) {
+    legendSvg += `
+      <g transform="translate(8, 20.5)">
+        <rect x="0" y="0" width="11" height="7" rx="1" fill="${legColors[legColors.length - 1]}" stroke="#475569" stroke-width="0.5"/>
+        <text x="15" y="5.8" font-size="5.4" font-weight="600" fill="#334155">${formatLegendLabel(breaks, 0, legColors.length)}</text>
+      </g>
+    `;
+  } else {
+    for (let i = 0; i < legColors.length; i++) {
+      const curY = 20.5 + i * rowH;
+      const lbl = formatLegendLabel(breaks, i, legColors.length);
+      legendSvg += `
+        <g transform="translate(8, ${curY.toFixed(1)})">
+          <rect x="0" y="0" width="11" height="7" rx="1" fill="${legColors[i]}" stroke="#475569" stroke-width="0.5"/>
+          <text x="15" y="5.8" font-size="5.4" font-weight="600" fill="#334155">${lbl}</text>
+        </g>
+      `;
+    }
+  }
+  legendSvg += `</g>`;
+
   return `
     <svg viewBox="0 0 ${svgW.toFixed(1)} ${svgH.toFixed(1)}" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" style="display:block; background:#ffffff;">
       <g>${pathsHtml}</g>
       <g>${outerSvg}</g>
       <g>${labelsSvg}</g>
+      <g>${legendSvg}</g>
     </svg>
   `;
 }
@@ -9175,17 +9211,20 @@ function openReportModal() {
   const mapSvgWrapper = document.getElementById("rep-map-render-target");
   mapSvgWrapper.innerHTML = renderReportSvgMap(currentVar, breaks, state.activePalette);
 
-  const colors = PALETTES[state.activePalette].colors;
-  let legendItems = "";
-  for (let i = 0; i < colors.length; i++) {
-    legendItems += `
-      <div style="display:flex; align-items:center; gap:4px;">
-        <span style="display:inline-block; width:12px; height:9px; background:${colors[i]}; border:1px solid #334155; border-radius:2px;"></span>
-        <span>${formatLegendLabel(breaks, i, colors.length)}</span>
-      </div>
-    `;
+  const repLegEl = document.getElementById("rep-legend-items");
+  if (repLegEl) {
+    const colors = PALETTES[state.activePalette].colors;
+    let legendItems = "";
+    for (let i = 0; i < colors.length; i++) {
+      legendItems += `
+        <div style="display:flex; align-items:center; gap:4px;">
+          <span style="display:inline-block; width:12px; height:9px; background:${colors[i]}; border:1px solid #334155; border-radius:2px;"></span>
+          <span>${formatLegendLabel(breaks, i, colors.length)}</span>
+        </div>
+      `;
+    }
+    repLegEl.innerHTML = legendItems;
   }
-  document.getElementById("rep-legend-items").innerHTML = legendItems;
 
   // 基本統計サマリー表
   document.getElementById("rep-stat-count").textContent = `${stats.count} / 40`;
