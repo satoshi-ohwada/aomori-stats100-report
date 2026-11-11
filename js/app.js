@@ -215,19 +215,19 @@ function hexToRgb(hex) {
   return [ (num >> 16) & 255, (num >> 8) & 255, num & 255 ];
 }
 
-// 元のツールと同一の境界線スタイル計算（塗りの明度に応じて白またはダークスレート）
+// 市町村境界線スタイル計算（塗りの明度に応じて白またはダークスレートで明確に視認化）
 function getBorderStrokeForFeature(fillColor) {
   if (!fillColor || fillColor === "transparent") {
-    return { color: "#64748b", weight: 1.0 };
+    return { color: "#475569", weight: 1.5 };
   }
   const rgb = hexToRgb(fillColor || "#ffffff");
   const lum = 0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2];
   const isVeryDark = (lum < 60);
 
   if (isVeryDark) {
-    return { color: "#ffffff", weight: 1.2 };
+    return { color: "#ffffff", weight: 1.8 };
   }
-  return { color: "#64748b", weight: 0.9 };
+  return { color: "#334155", weight: 1.4 };
 }
 
 // 外周県境境界線の抽出（元のツールと同一アルゴリズム）
@@ -598,7 +598,7 @@ function updateLeafletMap() {
         fillOpacity: 0.92,
         color: strokeInfo.color,
         weight: strokeInfo.weight,
-        opacity: 0.9
+        opacity: 1.0
       };
     },
     onEachFeature: function(feature, layer) {
@@ -631,8 +631,8 @@ function updateLeafletMap() {
         mouseover: function(e) {
           const l = e.target;
           l.setStyle({
-            weight: 2.0,
-            color: "#1e293b",
+            weight: 2.4,
+            color: "#0f172a",
             fillOpacity: 0.96
           });
           if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
@@ -652,15 +652,15 @@ function updateLeafletMap() {
     }
   }).addTo(state.leafletMap);
 
-  // 2. 外周県境境界線の描画（最前面：上品でスリムな境界線）
+  // 2. 外周県境境界線の描画（最前面：しっかり引き締める外枠）
   const outerGeoJSON = getOuterBorderGeoJSON(AOMORI_GEOJSON);
   if (outerGeoJSON) {
     state.outerBorderLayer = L.geoJSON(outerGeoJSON, {
       style: {
-        color: "#475569",
-        weight: 1.3,
+        color: "#0f172a",
+        weight: 2.2,
         fill: false,
-        opacity: 0.85
+        opacity: 1.0
       },
       interactive: false
     }).addTo(state.leafletMap);
@@ -1270,7 +1270,7 @@ function renderReportSvgMap(varItem, breaks, paletteKey) {
       });
     }
 
-    pathsHtml += `<path d="${pathD}" fill="${fillColor}" stroke="${strokeInfo.color}" stroke-width="${(strokeInfo.weight * 0.8).toFixed(1)}" stroke-opacity="0.9" stroke-linejoin="round" />`;
+    pathsHtml += `<path d="${pathD}" fill="${fillColor}" stroke="${strokeInfo.color}" stroke-width="${strokeInfo.weight}" stroke-opacity="1.0" stroke-linejoin="round" />`;
   });
 
   // 2. 外周県境境界線
@@ -1285,7 +1285,7 @@ function renderReportSvgMap(varItem, breaks, paletteKey) {
     });
   }
 
-  const outerSvg = outerPathD ? `<path d="${outerPathD}" fill="none" stroke="#475569" stroke-width="1.2" stroke-opacity="0.85" stroke-linecap="round" stroke-linejoin="round" />` : "";
+  const outerSvg = outerPathD ? `<path d="${outerPathD}" fill="none" stroke="#0f172a" stroke-width="2.2" stroke-opacity="1.0" stroke-linecap="round" stroke-linejoin="round" />` : "";
 
   // 3. 引き出し線 ＆ 市町村名・数値ラベル（チェックボックスON時、個別/両方対応）
   let labelsSvg = "";
