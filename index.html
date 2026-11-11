@@ -59,6 +59,25 @@
           <div id="quick-picks-container" class="quick-picks-container"></div>
         </div>
 
+        <!-- Mouse Slider Control for Indicator Selection -->
+        <div class="var-slider-card">
+          <div class="var-slider-header">
+            <span class="var-slider-title">
+              <i class="fa-solid fa-sliders"></i> 指標選択スライダー
+            </span>
+            <span id="slider-counter" class="var-slider-counter">2 / 105</span>
+          </div>
+          <div class="var-slider-controls">
+            <button type="button" id="btn-var-prev" class="var-slider-btn" title="前の指標へ (←)" aria-label="前の指標">
+              <i class="fa-solid fa-chevron-left"></i>
+            </button>
+            <input type="range" id="var-slider" min="1" max="105" value="2" step="1" class="var-slider-range" title="マウスでドラッグして指標をかんたんに選択">
+            <button type="button" id="btn-var-next" class="var-slider-btn" title="次の指標へ (→)" aria-label="次の指標">
+              <i class="fa-solid fa-chevron-right"></i>
+            </button>
+          </div>
+        </div>
+
         <!-- Search Input -->
         <div class="search-wrapper">
           <i class="fa-solid fa-magnifying-glass search-icon"></i>

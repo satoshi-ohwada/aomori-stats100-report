@@ -802,8 +802,91 @@ function initUI() {
     copyReportToClipboard();
   });
 
+  // 指標選択スライダーの操作イベント登録
+  const varSlider = document.getElementById("var-slider");
+  const btnVarPrev = document.getElementById("btn-var-prev");
+  const btnVarNext = document.getElementById("btn-var-next");
+
+  if (varSlider) {
+    // スライダードラッグ・変更時
+    varSlider.addEventListener("input", (e) => {
+      const idx = parseInt(e.target.value, 10) - 1;
+      if (state.filteredList && state.filteredList[idx]) {
+        selectVariable(state.filteredList[idx].id, true);
+      }
+    });
+
+    // スライダー上でホイール回転した際も前後に移動
+    varSlider.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      if (!state.filteredList || state.filteredList.length === 0) return;
+      const currentIdx = state.filteredList.findIndex(item => item.id === state.activeVarId);
+      const delta = e.deltaY > 0 ? 1 : -1;
+      const nextIdx = Math.max(0, Math.min(state.filteredList.length - 1, currentIdx + delta));
+      if (nextIdx !== currentIdx) {
+        selectVariable(state.filteredList[nextIdx].id, true);
+      }
+    }, { passive: false });
+  }
+
+  if (btnVarPrev) {
+    btnVarPrev.addEventListener("click", () => {
+      if (!state.filteredList || state.filteredList.length === 0) return;
+      const currentIdx = state.filteredList.findIndex(item => item.id === state.activeVarId);
+      if (currentIdx > 0) {
+        selectVariable(state.filteredList[currentIdx - 1].id, true);
+      }
+    });
+  }
+
+  if (btnVarNext) {
+    btnVarNext.addEventListener("click", () => {
+      if (!state.filteredList || state.filteredList.length === 0) return;
+      const currentIdx = state.filteredList.findIndex(item => item.id === state.activeVarId);
+      if (currentIdx < state.filteredList.length - 1) {
+        selectVariable(state.filteredList[currentIdx + 1].id, true);
+      }
+    });
+  }
+
   filterVariables();
-  selectVariable(state.activeVarId);
+  selectVariable(state.activeVarId, true);
+}
+
+// スライダーUI（つまみ位置・カウンター・前へ/次へボタン）を同期
+function syncSliderUI() {
+  const slider = document.getElementById("var-slider");
+  const counter = document.getElementById("slider-counter");
+  const btnPrev = document.getElementById("btn-var-prev");
+  const btnNext = document.getElementById("btn-var-next");
+  if (!slider || !state.filteredList) return;
+
+  const total = state.filteredList.length;
+  if (total === 0) {
+    slider.disabled = true;
+    if (btnPrev) btnPrev.disabled = true;
+    if (btnNext) btnNext.disabled = true;
+    if (counter) counter.textContent = "0 / 0";
+    return;
+  }
+
+  slider.disabled = false;
+  slider.min = "1";
+  slider.max = String(total);
+
+  const currentIdx = state.filteredList.findIndex(item => item.id === state.activeVarId);
+  const val = currentIdx >= 0 ? currentIdx + 1 : 1;
+  slider.value = String(val);
+
+  if (counter) {
+    counter.textContent = `${val} / ${total}`;
+  }
+  if (btnPrev) {
+    btnPrev.disabled = (val <= 1);
+  }
+  if (btnNext) {
+    btnNext.disabled = (val >= total);
+  }
 }
 
 function filterVariables() {
@@ -824,6 +907,7 @@ function filterVariables() {
         <span>該当する統計指標が見つかりません</span>
       </div>
     `;
+    syncSliderUI();
     return;
   }
 
@@ -840,22 +924,35 @@ function filterVariables() {
   listContainer.querySelectorAll(".variable-item").forEach(el => {
     el.addEventListener("click", () => {
       const id = el.getAttribute("data-id");
-      selectVariable(id);
+      selectVariable(id, false); // リスト直接クリック時は余計なスクロールを避ける
     });
   });
+
+  // 絞り込み後、現在選択中の指標が filteredList に含まれていなければ先頭を選択
+  const exists = state.filteredList.some(item => item.id === state.activeVarId);
+  if (!exists && state.filteredList.length > 0) {
+    selectVariable(state.filteredList[0].id, true);
+  } else {
+    syncSliderUI();
+  }
 }
 
-function selectVariable(varId) {
+function selectVariable(varId, scrollIntoView = true) {
   state.activeVarId = varId;
 
   document.querySelectorAll(".variable-item").forEach(el => {
-    el.classList.toggle("selected", el.getAttribute("data-id") === varId);
+    const isSelected = el.getAttribute("data-id") === varId;
+    el.classList.toggle("selected", isSelected);
+    if (isSelected && scrollIntoView) {
+      el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
   });
 
   document.querySelectorAll(".quick-tag").forEach(el => {
     el.classList.toggle("active", el.getAttribute("data-id") === varId);
   });
 
+  syncSliderUI();
   updateLeafletMap();
   updateInfoPanels();
 }

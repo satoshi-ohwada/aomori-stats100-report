@@ -20,6 +20,35 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  scrollbar-width: thin;
+  scrollbar-color: #94a3b8 #f1f5f9;
+}
+
+/* マウスで操作しやすい太めのスクロールバー（スライダー）スタイル */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 6px;
+  border: 2px solid #f1f5f9;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: var(--primary);
 }
 
 body {
@@ -242,13 +271,174 @@ body {
   font-size: 0.8rem;
 }
 
-/* Variable Select List */
+/* Indicator Mouse Slider Card (項目をマウスでスライド選択するコントロール) */
+.var-slider-card {
+  background: #f8fafc;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  margin-bottom: 10px;
+}
+
+.var-slider-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.var-slider-title {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.var-slider-counter {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--primary);
+  background: var(--primary-light);
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.var-slider-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.var-slider-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  color: #475569;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+  font-size: 0.75rem;
+}
+
+.var-slider-btn:hover:not(:disabled) {
+  background: var(--primary);
+  color: #ffffff;
+  border-color: var(--primary);
+}
+
+.var-slider-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.var-slider-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* スライダー本体（input[type=range]）を大きく・つまみやすく */
+.var-slider-range {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 8px;
+  border-radius: 4px;
+  background: #cbd5e1;
+  outline: none;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.var-slider-range:hover {
+  background: #94a3b8;
+}
+
+/* スライダーのつまみ (thumb) を大きく掴みやすくする */
+.var-slider-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--primary);
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  cursor: grab;
+  transition: transform 0.1s ease, background 0.15s ease;
+}
+
+.var-slider-range::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  background: var(--primary-hover);
+}
+
+.var-slider-range::-webkit-slider-thumb:active {
+  cursor: grabbing;
+  transform: scale(1.25);
+  background: #1d4ed8;
+}
+
+.var-slider-range::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--primary);
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  cursor: grab;
+  transition: transform 0.1s ease, background 0.15s ease;
+}
+
+.var-slider-range::-moz-range-thumb:hover {
+  transform: scale(1.15);
+}
+
+.var-slider-range::-moz-range-thumb:active {
+  cursor: grabbing;
+  transform: scale(1.25);
+}
+
+/* Variable Select List (項目を選択する欄) */
 .variable-list {
-  max-height: 180px;
-  overflow-y: auto;
+  max-height: 220px;
+  overflow-y: scroll; /* 常にスライダーを表示し、マウスですぐに掴めるようにする */
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
   background: #ffffff;
+}
+
+/* 項目選択リスト専用の太めで掴みやすいスライダー */
+.variable-list::-webkit-scrollbar {
+  width: 14px; /* 14pxの幅広スライダーでマウスでの掴みやすさを最大化 */
+}
+
+.variable-list::-webkit-scrollbar-track {
+  background: #f8fafc;
+  border-left: 1px solid #e2e8f0;
+}
+
+.variable-list::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border: 2px solid #f8fafc;
+  border-radius: 7px;
+  min-height: 36px; /* つまみが小さくなりすぎないよう最小高さを確保 */
+  cursor: grab;
+}
+
+.variable-list::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+.variable-list::-webkit-scrollbar-thumb:active {
+  background: var(--primary);
+  cursor: grabbing;
 }
 
 .variable-item {
