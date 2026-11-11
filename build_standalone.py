@@ -4,7 +4,7 @@ Aomori Stats 100 Map & Report - Standalone Single HTML Builder
 すべてのCSS、JavaScript、データを1つの単一HTMLに埋め込みます。
 """
 
-import os, re
+import os
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -20,11 +20,9 @@ data_js = read_file("js/data.js")
 app_js = read_file("js/app.js")
 
 # In index.html, replace css link with inline style
-html = re.sub(
-    r'<link rel="stylesheet" href="css/style\.css">',
-    f'<style>\n{css}\n</style>',
-    html
-)
+css_tag = '<link rel="stylesheet" href="css/style.css">'
+if css_tag in html:
+    html = html.replace(css_tag, f'<style>\n{css}\n</style>')
 
 # In index.html, replace app scripts with inline scripts
 script_bundle = f"""
@@ -35,11 +33,21 @@ script_bundle = f"""
   </script>
 """
 
-html = re.sub(
-    r'<script src="js/geojson\.js"></script>\s*<script src="js/data\.js"></script>\s*<script src="js/app\.js"></script>',
-    script_bundle,
-    html
-)
+script_tags = """  <!-- App Data & Scripts -->
+  <script src="js/geojson.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>"""
+
+if script_tags in html:
+    html = html.replace(script_tags, script_bundle)
+else:
+    # Fallback replacement
+    import re
+    html = re.sub(
+        r'<script src="js/geojson\.js"></script>\s*<script src="js/data\.js"></script>\s*<script src="js/app\.js"></script>',
+        lambda m: script_bundle,
+        html
+    )
 
 # Write index_standalone.html
 out_path = os.path.join(BASE_DIR, "index_standalone.html")

@@ -77,11 +77,32 @@
         </div>
       </div>
 
-      <!-- Section 2: Color Palette -->
+      <!-- Section 2: Per-Capita Population Transform (人口1,000人あたり) -->
+      <div class="sidebar-section">
+        <div class="section-label">
+          <i class="fa-solid fa-users-gear"></i>
+          <span>2. 人口補正（率化）</span>
+        </div>
+        <div class="per-capita-toggle-box">
+          <button id="btn-mode-raw" class="per-capita-btn active" data-mode="raw" title="実測値のまま表示します">
+            <i class="fa-solid fa-hashtag"></i>
+            <span>実測値</span>
+          </button>
+          <button id="btn-mode-1000" class="per-capita-btn" data-mode="1000" title="令和2年国勢調査人口で割って1,000人あたりに変換します">
+            <i class="fa-solid fa-users"></i>
+            <span>人口1,000人あたり</span>
+          </button>
+        </div>
+        <div class="per-capita-note">
+          ※令和2年(2020年)国勢調査人口を用いて自治体の人口規模差を補正します
+        </div>
+      </div>
+
+      <!-- Section 3: Color Palette -->
       <div class="sidebar-section">
         <div class="section-label">
           <i class="fa-solid fa-palette"></i>
-          <span>2. 塗り分けカラー</span>
+          <span>3. 塗り分けカラー</span>
         </div>
         
         <div class="palette-picker">
@@ -131,11 +152,11 @@
         </div>
       </div>
 
-      <!-- Section 3: Print Action Guide -->
+      <!-- Section 4: Print Action Guide -->
       <div class="sidebar-section" style="border-bottom:none;">
         <div class="section-label">
           <i class="fa-solid fa-file-lines"></i>
-          <span>3. レポート印刷</span>
+          <span>4. レポート印刷</span>
         </div>
         <p style="font-size:0.8rem; color:#64748b; margin-bottom:12px;">
           現在の作図結果、全県統計、上位・下位ランキングが自動レイアウトされたA4レポートを印刷・PDF保存できます。
@@ -162,6 +183,7 @@
         <div class="active-var-title">
           <span id="active-var-title-text">人口（人）</span>
           <span id="active-var-unit-pill" class="unit-pill">単位: 人</span>
+          <span id="active-var-transform-badge" class="per-capita-badge" style="display:none;">人口1,000人あたり</span>
         </div>
       </div>
       
@@ -285,6 +307,7 @@
               <div class="rep-sub">
                 <strong id="rep-target-var-name" style="font-size:1.05rem; color:#2563eb;">人口（人）</strong>
                 <span id="rep-unit-text" style="color:#64748b; font-size:0.85rem;">（単位: 人）</span>
+                <span id="rep-per-capita-badge" class="per-capita-badge" style="display:none;">人口1,000人あたり</span>
               </div>
             </div>
             <div class="rep-meta">
@@ -296,10 +319,10 @@
           <!-- Report Grid (2 Columns) -->
           <div class="rep-grid-landscape">
             
-            <!-- Left: High-Precision Vector Map & Legend -->
+            <!-- Left: High-Precision Vector Map & Legend (縦横比完全維持) -->
             <div class="rep-map-col">
               <div class="rep-map-wrapper">
-                <div id="rep-map-render-target" style="width:100%; height:100%;"></div>
+                <div id="rep-map-render-target"></div>
               </div>
               <div class="rep-legend-box">
                 <span style="font-weight:700; color:#334155;">【階級凡例】</span>
@@ -368,7 +391,7 @@
                   <i class="fa-regular fa-pen-to-square" style="color:#6366f1;"></i>
                   <span>分析所見・メモ（印刷前に編集可能）</span>
                 </div>
-                <textarea class="rep-memo-textarea" placeholder="ここに分析メモや着目ポイントを直接入力できます（印刷時にそのまま反映されます）。"></textarea>
+                <textarea id="rep-memo-textarea" class="rep-memo-textarea" placeholder="ここに分析メモや着目ポイントを直接入力できます（印刷時にそのまま反映されます）。"></textarea>
               </div>
 
             </div>
@@ -377,7 +400,7 @@
 
           <!-- Report Footer -->
           <footer class="rep-footer">
-            <span>※本レポートは「青森県 市町村データ100 かんたんマップ」により自動生成されました。</span>
+            <span id="rep-footer-note">※本レポートは「青森県 市町村データ100 かんたんマップ」により自動生成されました。</span>
             <span>青森県40市町村 データセット</span>
           </footer>
 

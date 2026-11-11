@@ -3,6 +3,50 @@
  * Application Logic
  */
 
+// 令和2年(2020年)国勢調査確定人口マスター（青森県40市町村）
+const CENSUS_POPULATION_2020 = {
+  "青森市": 275192,
+  "弘前市": 168466,
+  "八戸市": 223415,
+  "黒石市": 31946,
+  "五所川原市": 51415,
+  "十和田市": 60378,
+  "三沢市": 39152,
+  "むつ市": 54103,
+  "つがる市": 30934,
+  "平川市": 30567,
+  "平内町": 10126,
+  "今別町": 2334,
+  "蓬田村": 2540,
+  "外ヶ浜町": 5401,
+  "鰺ヶ沢町": 9044,
+  "深浦町": 7346,
+  "西目屋村": 1265,
+  "藤崎町": 14573,
+  "大鰐町": 8665,
+  "田舎館村": 7326,
+  "板柳町": 12700,
+  "鶴田町": 12074,
+  "中泊町": 9657,
+  "野辺地町": 12374,
+  "七戸町": 14556,
+  "六戸町": 10447,
+  "横浜町": 4229,
+  "東北町": 16428,
+  "六ヶ所村": 10367,
+  "おいらせ町": 24273,
+  "大間町": 4718,
+  "東通村": 5955,
+  "風間浦村": 1636,
+  "佐井村": 1788,
+  "三戸町": 9082,
+  "五戸町": 16042,
+  "田子町": 4968,
+  "南部町": 16809,
+  "階上町": 13496,
+  "新郷村": 2197
+};
+
 // カラーパレット定義（5段階）
 const PALETTES = {
   blue: {
@@ -37,6 +81,7 @@ const QUICK_PICKS = [
 // アプリケーション状態
 const state = {
   activeVarId: "var_2", // 初期指標: 人口
+  isPerCapita: false,   // 人口1,000人あたり補正モード（false: 実測値, true: 人口1,000人あたり）
   activePalette: "blue",
   filteredList: [],
   leafletMap: null,
@@ -46,6 +91,39 @@ const state = {
   currentBreaks: [],
   currentStats: null
 };
+
+// 実効データの取得（実測値 or 人口1,000人あたり）
+function getEffectiveData(varItem) {
+  if (!varItem) return { data: {}, unit: "", isPerCapita: false };
+
+  if (!state.isPerCapita) {
+    return {
+      data: varItem.data,
+      unit: varItem.unit || "",
+      isPerCapita: false
+    };
+  }
+
+  // 人口1,000人あたり変換: (val / pop2020) * 1000
+  const transformed = {};
+  for (const [muni, val] of Object.entries(varItem.data)) {
+    const pop = CENSUS_POPULATION_2020[muni];
+    if (val !== null && val !== undefined && !isNaN(val) && typeof pop === 'number' && pop > 0) {
+      transformed[muni] = (val / pop) * 1000;
+    } else {
+      transformed[muni] = null;
+    }
+  }
+
+  const rawUnit = varItem.unit ? varItem.unit.replace(/^単位[：:]\s*/, "").trim() : "";
+  const perCapitaUnit = rawUnit ? `${rawUnit} / 千人` : "人口1,000人対";
+
+  return {
+    data: transformed,
+    unit: perCapitaUnit,
+    isPerCapita: true
+  };
+}
 
 // 色ユーティリティ
 function hexToRgb(hex) {
@@ -141,6 +219,19 @@ function formatNum(val, decimals = null) {
       maximumFractionDigits: decimals
     });
   }
+  // 人口千人対モードの場合は小数をスマートに表示
+  if (state.isPerCapita) {
+    if (Math.abs(val) < 10 && val % 1 !== 0) {
+      return Number(val).toLocaleString("ja-JP", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+    }
+    return Number(val).toLocaleString("ja-JP", {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 2
+    });
+  }
   if (val % 1 !== 0) {
     return Number(val).toLocaleString("ja-JP", {
       minimumFractionDigits: 1,
@@ -151,9 +242,10 @@ function formatNum(val, decimals = null) {
 }
 
 // 統計量の計算
-function computeStats(varItem) {
+function computeStats(effectiveObj) {
+  const data = effectiveObj.data;
   const entries = [];
-  for (const [muni, val] of Object.entries(varItem.data)) {
+  for (const [muni, val] of Object.entries(data)) {
     if (val !== null && val !== undefined && !isNaN(val)) {
       entries.push({ muni, val });
     }
@@ -168,7 +260,8 @@ function computeStats(varItem) {
       min: { muni: "-", val: null },
       max: { muni: "-", val: null },
       sorted: [],
-      ranks: {}
+      ranks: {},
+      isPerCapita: effectiveObj.isPerCapita
     };
   }
 
@@ -199,7 +292,8 @@ function computeStats(varItem) {
     max: entries[0],
     min: entries[entries.length - 1],
     sorted: entries,
-    ranks: ranks
+    ranks: ranks,
+    isPerCapita: effectiveObj.isPerCapita
   };
 }
 
@@ -255,20 +349,19 @@ function initLeafletMap() {
     zoom: 9,
     minZoom: 5,
     maxZoom: 18,
-    zoomSnap: 0, // 小数点ズームを許可し、領域限界まで完全フィット
-    dragging: false, // マウス操作での移動を無効化
-    scrollWheelZoom: false, // ホイールズーム無効化
-    doubleClickZoom: false, // ダブルクリックズーム無効化
-    touchZoom: false, // タッチズーム無効化
+    zoomSnap: 0,
+    dragging: false,
+    scrollWheelZoom: false,
+    doubleClickZoom: false,
+    touchZoom: false,
     boxZoom: false,
     keyboard: false,
-    zoomControl: false, // ズームボタン非表示
+    zoomControl: false,
     attributionControl: false
   });
 
   state.leafletMap = map;
 
-  // 凡例コントロール（右下）
   const legend = L.control({ position: "bottomright" });
   legend.onAdd = function() {
     const div = L.DomUtil.create("div", "map-legend-control");
@@ -279,7 +372,6 @@ function initLeafletMap() {
   state.legendControl = legend;
 }
 
-// 地図を領域限界まで最大拡大表示する（余白ゼロでピッタリフィット）
 function fitMapToContainer() {
   if (!state.leafletMap || !state.geoJsonLayer) return;
   state.leafletMap.invalidateSize();
@@ -294,13 +386,13 @@ function updateLeafletMap() {
   const currentVar = STATS_DATA.find(v => v.id === state.activeVarId);
   if (!currentVar) return;
 
-  const stats = computeStats(currentVar);
+  const effective = getEffectiveData(currentVar);
+  const stats = computeStats(effective);
   state.currentStats = stats;
 
   const breaks = computeQuantileBreaks(stats.sorted, 5);
   state.currentBreaks = breaks;
 
-  // 既存レイヤーをクリア
   if (state.geoJsonLayer) {
     state.leafletMap.removeLayer(state.geoJsonLayer);
     state.geoJsonLayer = null;
@@ -314,7 +406,7 @@ function updateLeafletMap() {
   state.geoJsonLayer = L.geoJSON(AOMORI_GEOJSON, {
     style: function(feature) {
       const muniName = feature.properties.name;
-      const val = currentVar.data[muniName];
+      const val = effective.data[muniName];
       const fillColor = getColorForValue(val, breaks, state.activePalette);
       const strokeInfo = getBorderStrokeForFeature(fillColor);
 
@@ -328,16 +420,23 @@ function updateLeafletMap() {
     },
     onEachFeature: function(feature, layer) {
       const muniName = feature.properties.name;
-      const val = currentVar.data[muniName];
+      const val = effective.data[muniName];
       const rank = stats.ranks[muniName];
 
       const rankStr = rank ? `（全40市町村中 第 <strong style="color:#2563eb;">${rank}</strong> 位）` : "";
-      const valStr = val !== null && val !== undefined ? `${formatNum(val)} <span style="font-size:0.8rem; font-weight:normal;">${currentVar.unit || ""}</span>` : "データなし";
+      const valStr = val !== null && val !== undefined ? `${formatNum(val)} <span style="font-size:0.8rem; font-weight:normal;">${effective.unit}</span>` : "データなし";
+
+      let popInfo = "";
+      if (state.isPerCapita) {
+        const rawVal = currentVar.data[muniName];
+        popInfo = `<div style="font-size:0.72rem; color:#64748b; margin-top:2px;">(実測値: ${formatNum(rawVal)} ${currentVar.unit || ''} / 2020年人口: ${formatNum(CENSUS_POPULATION_2020[muniName])}人)</div>`;
+      }
 
       layer.bindTooltip(`
         <div class="tooltip-muni-name">${muniName}</div>
         <div class="tooltip-val">${valStr}</div>
         <div class="tooltip-rank">${rankStr}</div>
+        ${popInfo}
       `, {
         className: "muni-tooltip",
         sticky: true,
@@ -378,10 +477,9 @@ function updateLeafletMap() {
     }).addTo(state.leafletMap);
   }
 
-  // 領域限界まで最大フィット
   fitMapToContainer();
 
-  updateLegendUI(breaks, currentVar.unit);
+  updateLegendUI(breaks, effective.unit);
 }
 
 function updateLegendUI(breaks, unit) {
@@ -444,6 +542,32 @@ function initUI() {
     filterVariables();
   });
 
+  // 人口補正（率化）ボタンスイッチ
+  const btnModeRaw = document.getElementById("btn-mode-raw");
+  const btnMode1000 = document.getElementById("btn-mode-1000");
+
+  function setPerCapitaMode(isPerCapita) {
+    state.isPerCapita = isPerCapita;
+    btnModeRaw.classList.toggle("active", !isPerCapita);
+    btnMode1000.classList.toggle("active", isPerCapita);
+
+    const badge = document.getElementById("active-var-transform-badge");
+    if (badge) {
+      badge.style.display = isPerCapita ? "inline-block" : "none";
+    }
+
+    updateLeafletMap();
+    updateInfoPanels();
+  }
+
+  if (btnModeRaw) {
+    btnModeRaw.addEventListener("click", () => setPerCapitaMode(false));
+  }
+  if (btnMode1000) {
+    btnMode1000.addEventListener("click", () => setPerCapitaMode(true));
+  }
+
+  // カラーパレット切り替え
   document.querySelectorAll(".palette-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".palette-btn").forEach(b => b.classList.remove("active"));
@@ -478,7 +602,7 @@ function initUI() {
     });
   }
 
-  // サイドバーの開閉トグル（地図を画面横幅100%に全画面化）
+  // サイドバーの開閉トグル
   const btnToggleSidebar = document.getElementById("btn-toggle-sidebar");
   const appSidebar = document.getElementById("app-sidebar");
   if (btnToggleSidebar && appSidebar) {
@@ -490,7 +614,6 @@ function initUI() {
     });
   }
 
-  // ウィンドウリサイズ時に地図を常に領域限界まで最大フィット
   window.addEventListener("resize", () => {
     fitMapToContainer();
   });
@@ -576,10 +699,11 @@ function updateInfoPanels() {
   const currentVar = STATS_DATA.find(v => v.id === state.activeVarId);
   if (!currentVar) return;
 
-  const stats = state.currentStats || computeStats(currentVar);
+  const effective = getEffectiveData(currentVar);
+  const stats = state.currentStats || computeStats(effective);
 
   document.getElementById("active-var-title-text").textContent = currentVar.name;
-  document.getElementById("active-var-unit-pill").textContent = currentVar.unit ? `単位: ${currentVar.unit}` : "単位なし";
+  document.getElementById("active-var-unit-pill").textContent = effective.unit ? `単位: ${effective.unit}` : "単位なし";
 
   document.getElementById("selected-var-num").textContent = `No.${currentVar.num} [${currentVar.category}]`;
   document.getElementById("selected-var-name").textContent = currentVar.name;
@@ -618,30 +742,43 @@ function updateInfoPanels() {
 }
 
 /* ==========================================================================
-   SVG Vector Map Generator (for crisp A4 Report Printing)
+   SVG Vector Map Generator (for crisp A4 Report Printing with TRUE Mercator Aspect Ratio)
    ========================================================================== */
 function renderReportSvgMap(varItem, breaks, paletteKey) {
+  const effective = getEffectiveData(varItem);
+
+  // 青森県の地理的境界座標
   const minLon = 139.8601;
   const maxLon = 141.6826;
   const minLat = 40.2178;
   const maxLat = 41.5559;
 
-  const svgW = 540;
-  const svgH = 390;
-  const pad = 10;
-
-  function latToY(lat) {
-    const latRad = (lat * Math.PI) / 180;
+  // メルカトルY座標（ラジアン）
+  function latToMerc(latDeg) {
+    const latRad = (latDeg * Math.PI) / 180;
     return Math.log(Math.tan(Math.PI / 4 + latRad / 2));
   }
 
-  const yMinMerc = latToY(minLat);
-  const yMaxMerc = latToY(maxLat);
+  const yMinMerc = latToMerc(minLat);
+  const yMaxMerc = latToMerc(maxLat);
+
+  const lonSpan = ((maxLon - minLon) * Math.PI) / 180;
+  const mercYSpan = yMaxMerc - yMinMerc;
+
+  // 正確なメルカトル投影：横と縦で全く同一の拡大スケールを適用し、縦横比の歪みを完全にゼロにする
+  const pad = 12;
+  const mapW = 460;
+  const scale = mapW / lonSpan; // 共通スケール
+  const mapH = mercYSpan * scale; // 正確なアスペクト比で高さを算出
+
+  const svgW = mapW + pad * 2;
+  const svgH = mapH + pad * 2;
 
   function project(lon, lat) {
-    const x = pad + ((lon - minLon) / (maxLon - minLon)) * (svgW - pad * 2);
-    const mercY = latToY(lat);
-    const y = pad + ((yMaxMerc - mercY) / (yMaxMerc - yMinMerc)) * (svgH - pad * 2);
+    const lonRad = ((lon - minLon) * Math.PI) / 180;
+    const x = pad + lonRad * scale;
+    const mercY = latToMerc(lat);
+    const y = pad + (yMaxMerc - mercY) * scale;
     return [x, y];
   }
 
@@ -650,7 +787,7 @@ function renderReportSvgMap(varItem, breaks, paletteKey) {
   // 1. 各市町村ポリゴン
   AOMORI_GEOJSON.features.forEach(feat => {
     const muniName = feat.properties.name;
-    const val = varItem.data[muniName];
+    const val = effective.data[muniName];
     const fillColor = getColorForValue(val, breaks, paletteKey);
     const strokeInfo = getBorderStrokeForFeature(fillColor);
 
@@ -697,7 +834,7 @@ function renderReportSvgMap(varItem, breaks, paletteKey) {
   const outerSvg = outerPathD ? `<path d="${outerPathD}" fill="none" stroke="#0f172a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />` : "";
 
   return `
-    <svg viewBox="0 0 ${svgW} ${svgH}" width="100%" height="100%" style="display:block; background:#ffffff;">
+    <svg viewBox="0 0 ${svgW.toFixed(1)} ${svgH.toFixed(1)}" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" style="display:block; background:#ffffff;">
       <g>${pathsHtml}</g>
       <g>${outerSvg}</g>
     </svg>
@@ -708,17 +845,30 @@ function openReportModal() {
   const currentVar = STATS_DATA.find(v => v.id === state.activeVarId);
   if (!currentVar) return;
 
-  const stats = state.currentStats || computeStats(currentVar);
+  const effective = getEffectiveData(currentVar);
+  const stats = state.currentStats || computeStats(effective);
   const breaks = state.currentBreaks || computeQuantileBreaks(stats.sorted, 5);
 
   const today = new Date();
   const dateStr = `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日`;
 
   document.getElementById("rep-target-var-name").textContent = currentVar.name;
-  document.getElementById("rep-unit-text").textContent = currentVar.unit ? `（単位: ${currentVar.unit}）` : "";
-  document.getElementById("rep-date-text").textContent = `作成日: ${dateStr}`;
-  document.getElementById("rep-source-text").textContent = currentVar.source || "令和8年 青森県統計年鑑";
+  document.getElementById("rep-unit-text").textContent = effective.unit ? `（単位: ${effective.unit}）` : "";
+  
+  const repBadge = document.getElementById("rep-per-capita-badge");
+  if (repBadge) {
+    repBadge.style.display = state.isPerCapita ? "inline-block" : "none";
+  }
 
+  document.getElementById("rep-date-text").textContent = `作成日: ${dateStr}`;
+  
+  let sourceText = currentVar.source || "令和8年 青森県統計年鑑";
+  if (state.isPerCapita) {
+    sourceText += "（※人口補正基準: 令和2年国勢調査確定人口）";
+  }
+  document.getElementById("rep-source-text").textContent = sourceText;
+
+  // 正確なアスペクト比でベクターマップを生成
   const mapSvgWrapper = document.getElementById("rep-map-render-target");
   mapSvgWrapper.innerHTML = renderReportSvgMap(currentVar, breaks, state.activePalette);
 
@@ -735,7 +885,14 @@ function openReportModal() {
   document.getElementById("rep-legend-items").innerHTML = legendItems;
 
   document.getElementById("rep-stat-count").textContent = `${stats.count} / 40 市町村`;
-  document.getElementById("rep-stat-sum").textContent = formatNum(stats.sum);
+  
+  // 比率データ（人口1,000人あたり）のときは合計値を対象外表示にする
+  if (state.isPerCapita) {
+    document.getElementById("rep-stat-sum").innerHTML = `- <span style="font-size:0.65rem; color:#64748b; font-weight:normal;">(対象外)</span>`;
+  } else {
+    document.getElementById("rep-stat-sum").textContent = formatNum(stats.sum);
+  }
+
   document.getElementById("rep-stat-mean").textContent = formatNum(stats.mean);
   document.getElementById("rep-stat-median").textContent = formatNum(stats.median);
   document.getElementById("rep-stat-max").innerHTML = `<strong>${formatNum(stats.max.val)}</strong> <span style="color:#64748b; font-size:0.68rem;">(${stats.max.muni})</span>`;
@@ -756,6 +913,13 @@ function openReportModal() {
       <span>${formatNum(item.val)}</span>
     </div>
   `).join("");
+
+  const footerNote = document.getElementById("rep-footer-note");
+  if (footerNote) {
+    footerNote.textContent = state.isPerCapita
+      ? "※人口1,000人あたり値は各市町村の数値を令和2年(2020年)国勢調査人口で除算し1,000倍した値です。"
+      : "※本レポートは「青森県 市町村データ100 かんたんマップ」により自動生成されました。";
+  }
 
   document.getElementById("report-modal").classList.remove("hidden");
 }
@@ -782,7 +946,9 @@ async function saveReportAsPNG() {
     const dataUrl = canvas.toDataURL("image/png");
     const link = document.createElement("a");
     const currentVar = STATS_DATA.find(v => v.id === state.activeVarId);
-    const varName = currentVar ? currentVar.name.replace(/[\/\:\*\?\"\<\>\|]/g, "_") : "レポート";
+    let varName = currentVar ? currentVar.name.replace(/[\/\:\*\?\"\<\>\|]/g, "_") : "レポート";
+    if (state.isPerCapita) varName += "_人口1000人対";
+
     link.download = `青森県市町村データ100_${varName}_A4レポート.png`;
     link.href = dataUrl;
     link.click();
@@ -828,7 +994,6 @@ async function copyReportToClipboard() {
 window.addEventListener("DOMContentLoaded", () => {
   initLeafletMap();
   initUI();
-  // 初回ロード完了後に確実に領域最大フィット
   setTimeout(() => {
     fitMapToContainer();
   }, 80);
