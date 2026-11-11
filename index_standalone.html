@@ -360,24 +360,23 @@ body {
   cursor: not-allowed;
 }
 
-/* Variable Select List (項目を選択する欄: スクロールバースライダーを左端に配置) */
+/* Variable Select List (項目を選択する欄: 標準の右側に幅広・掴みやすい上下スライダーを配置) */
 .variable-list {
   max-height: 240px;
-  overflow-y: scroll; /* 常に左端スライダーを表示し、マウスですぐに掴めるようにする */
-  direction: rtl; /* ★ブラウザの上下移動スライダーを「左端」に配置★ */
+  overflow-y: scroll; /* 常に右側スライダーを表示し、マウスですぐに掴めるようにする */
   border: 1px solid var(--border-color);
   border-radius: 0 0 var(--radius-sm) var(--radius-sm);
   background: #ffffff;
 }
 
-/* 項目選択リスト専用の太めで掴みやすい左端スライダー */
+/* 項目選択リスト専用の太めで掴みやすい右側スライダー */
 .variable-list::-webkit-scrollbar {
   width: 16px; /* 16pxの幅広スライダーでマウスでの掴みやすさを最大化 */
 }
 
 .variable-list::-webkit-scrollbar-track {
   background: #f1f5f9;
-  border-right: 1px solid #cbd5e1; /* リスト項目との境界を明確に */
+  border-left: 1px solid #cbd5e1; /* リスト項目との境界を明確に */
 }
 
 .variable-list::-webkit-scrollbar-thumb {
@@ -398,10 +397,7 @@ body {
   cursor: grabbing;
 }
 
-/* 中身のアイテムは通常の左詰め（ltr）に戻す */
 .variable-item {
-  direction: ltr; /* テキストやバッジを通常の左から右へ */
-  text-align: left;
   padding: 8px 10px;
   font-size: 0.82rem;
   border-bottom: 1px solid #f1f5f9;
@@ -1529,7 +1525,7 @@ body {
           </div>
         </div>
 
-        <!-- Variable List (左端に上下スライダーを配置) -->
+        <!-- Variable List (太幅スライダー＆上下操作) -->
         <div id="variable-list" class="variable-list"></div>
 
         <!-- Selected Indicator Info Card -->
