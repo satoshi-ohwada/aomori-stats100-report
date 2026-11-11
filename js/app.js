@@ -549,8 +549,11 @@ function fitMapToContainer() {
   if (!state.leafletMap || !state.geoJsonLayer) return;
   state.leafletMap.invalidateSize();
   const bounds = state.geoJsonLayer.getBounds();
+  
+  // 右上凡例（幅約185px）と重ならないよう、東側（右側）にパディングを確保して地図を西寄りにフィット
   state.leafletMap.fitBounds(bounds, {
-    padding: [0, 0],
+    paddingTopLeft: [10, 10],      // [x(左), y(上)]
+    paddingBottomRight: [205, 10], // [x(右), y(下)]: 東側に約205pxの余白を空けて地図を西側にオフセット
     animate: false
   });
 }
@@ -797,10 +800,10 @@ function formatLegendLabel(breaks, i, totalClasses) {
   return `${formatNum(breaks[i])} 〜 ${formatNum(breaks[i + 1])}`;
 }
 
-// 凡例用 ミニ箱ひげ図（Box Plot + ドット散布）SVG生成
-function buildLegendBoxplotSVG(stats, unit, width = 104, height = 114) {
+// 凡例用 ミニ箱ひげ図（Box Plot + ドット散布）SVG生成（スリム化・省スペース版）
+function buildLegendBoxplotSVG(stats, unit, width = 66, height = 106) {
   if (!stats || !stats.sorted || stats.sorted.length === 0 || stats.min.val === null || stats.max.val === null) {
-    return `<div style="font-size:0.65rem; color:#94a3b8; text-align:center; padding:20px 0;">分布データなし</div>`;
+    return `<div style="font-size:0.65rem; color:#94a3b8; text-align:center; padding:18px 0;">データなし</div>`;
   }
 
   const min = stats.min.val;
@@ -811,8 +814,8 @@ function buildLegendBoxplotSVG(stats, unit, width = 104, height = 114) {
   const iqr = stats.iqr;
   const numList = stats.sorted; // { muni, val }
 
-  const padTop = 10;
-  const padBottom = 10;
+  const padTop = 8;
+  const padBottom = 8;
   const drawHeight = height - padTop - padBottom;
   const range = max - min;
 
@@ -845,69 +848,69 @@ function buildLegendBoxplotSVG(stats, unit, width = 104, height = 114) {
   const whiskerBottomY = getY(lowerWhiskerVal);
   const whiskerTopY = getY(upperWhiskerVal);
 
-  const boxCenterX = 22;
-  const boxW = 16;
+  const boxCenterX = 13;
+  const boxW = 10;
   const boxLeft = boxCenterX - boxW / 2;
 
   // 1. ひげ線
   const whiskerLine = `
-    <line x1="${boxCenterX}" y1="${whiskerTopY.toFixed(1)}" x2="${boxCenterX}" y2="${q3Y.toFixed(1)}" stroke="#475569" stroke-width="1.2" />
-    <line x1="${boxCenterX}" y1="${q1Y.toFixed(1)}" x2="${boxCenterX}" y2="${whiskerBottomY.toFixed(1)}" stroke="#475569" stroke-width="1.2" />
-    <line x1="${(boxCenterX - 5).toFixed(1)}" y1="${whiskerTopY.toFixed(1)}" x2="${(boxCenterX + 5).toFixed(1)}" y2="${whiskerTopY.toFixed(1)}" stroke="#475569" stroke-width="1.4" />
-    <line x1="${(boxCenterX - 5).toFixed(1)}" y1="${whiskerBottomY.toFixed(1)}" x2="${(boxCenterX + 5).toFixed(1)}" y2="${whiskerBottomY.toFixed(1)}" stroke="#475569" stroke-width="1.4" />
+    <line x1="${boxCenterX}" y1="${whiskerTopY.toFixed(1)}" x2="${boxCenterX}" y2="${q3Y.toFixed(1)}" stroke="#475569" stroke-width="1.1" />
+    <line x1="${boxCenterX}" y1="${q1Y.toFixed(1)}" x2="${boxCenterX}" y2="${whiskerBottomY.toFixed(1)}" stroke="#475569" stroke-width="1.1" />
+    <line x1="${(boxCenterX - 4).toFixed(1)}" y1="${whiskerTopY.toFixed(1)}" x2="${(boxCenterX + 4).toFixed(1)}" y2="${whiskerTopY.toFixed(1)}" stroke="#475569" stroke-width="1.3" />
+    <line x1="${(boxCenterX - 4).toFixed(1)}" y1="${whiskerBottomY.toFixed(1)}" x2="${(boxCenterX + 4).toFixed(1)}" y2="${whiskerBottomY.toFixed(1)}" stroke="#475569" stroke-width="1.3" />
   `;
 
   // 2. 箱 (Q1〜Q3)
   const boxHeight = Math.max(2, q1Y - q3Y);
   const boxSvg = `
     <rect x="${boxLeft.toFixed(1)}" y="${q3Y.toFixed(1)}" width="${boxW}" height="${boxHeight.toFixed(1)}"
-          fill="rgba(59, 130, 246, 0.15)" stroke="#2563eb" stroke-width="1.4" rx="1.5">
+          fill="rgba(59, 130, 246, 0.16)" stroke="#2563eb" stroke-width="1.3" rx="1.5">
       <title>四分位範囲 (Q1〜Q3): ${formatNum(q1)} 〜 ${formatNum(q3)} [IQR: ${formatNum(iqr)}]</title>
     </rect>
   `;
 
   // 3. 中央値ライン
   const medSvg = `
-    <line x1="${boxLeft.toFixed(1)}" y1="${medY.toFixed(1)}" x2="${(boxLeft + boxW).toFixed(1)}" y2="${medY.toFixed(1)}" stroke="#ea580c" stroke-width="2.2" stroke-linecap="round">
+    <line x1="${boxLeft.toFixed(1)}" y1="${medY.toFixed(1)}" x2="${(boxLeft + boxW).toFixed(1)}" y2="${medY.toFixed(1)}" stroke="#ea580c" stroke-width="2.0" stroke-linecap="round">
       <title>中央値 (Median): ${formatNum(median)} ${unit}</title>
     </line>
   `;
 
   // 4. 40自治体ドットプロット（Strip/Jitter）
-  const dotXBase = 46;
+  const dotXBase = 29;
   let dotsSvg = "";
   numList.forEach((item, idx) => {
     const py = getY(item.val);
     let charSum = 0;
     for (let c = 0; c < item.muni.length; c++) charSum += item.muni.charCodeAt(c);
-    const jitterX = dotXBase + ((charSum % 17) - 8);
+    const jitterX = dotXBase + ((charSum % 9) - 4);
     const isOutlier = (item.val < lowerFence || item.val > upperFence);
 
     dotsSvg += `
-      <circle cx="${jitterX.toFixed(1)}" cy="${py.toFixed(1)}" r="${isOutlier ? 3.0 : 2.0}"
+      <circle cx="${jitterX.toFixed(1)}" cy="${py.toFixed(1)}" r="${isOutlier ? 2.5 : 1.7}"
               class="boxplot-dot"
               fill="${isOutlier ? '#ef4444' : '#334155'}"
-              fill-opacity="${isOutlier ? 0.9 : 0.55}"
-              stroke="#ffffff" stroke-width="0.5">
+              fill-opacity="${isOutlier ? 0.9 : 0.5}"
+              stroke="#ffffff" stroke-width="0.4">
         <title>${item.muni}: ${formatNum(item.val)} ${unit} (${idx + 1}位)${isOutlier ? ' [外れ値]' : ''}</title>
       </circle>
     `;
   });
 
   // 5. ラベルテキスト（Max, Med, Min）
-  const textX = width - 2;
+  const textX = width - 1;
   const labelsSvg = `
-    <text x="${textX}" y="${Math.min(padTop + 6, maxY + 3).toFixed(1)}" text-anchor="end" font-size="7.5" fill="#64748b" font-weight="600">Max ${formatNum(max)}</text>
-    <text x="${textX}" y="${(medY + 2.5).toFixed(1)}" text-anchor="end" font-size="7.5" fill="#ea580c" font-weight="bold">中 ${formatNum(median)}</text>
-    <text x="${textX}" y="${Math.max(height - padBottom + 2, minY + 2).toFixed(1)}" text-anchor="end" font-size="7.5" fill="#64748b" font-weight="600">Min ${formatNum(min)}</text>
+    <text x="${textX}" y="${Math.min(padTop + 5.5, maxY + 2.5).toFixed(1)}" text-anchor="end" font-size="6.8" fill="#64748b" font-weight="600">Max ${formatNum(max)}</text>
+    <text x="${textX}" y="${(medY + 2.2).toFixed(1)}" text-anchor="end" font-size="6.8" fill="#ea580c" font-weight="bold">中 ${formatNum(median)}</text>
+    <text x="${textX}" y="${Math.max(height - padBottom + 1.5, minY + 1.5).toFixed(1)}" text-anchor="end" font-size="6.8" fill="#64748b" font-weight="600">Min ${formatNum(min)}</text>
   `;
 
   return `
     <svg class="legend-boxplot-svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" style="overflow:visible;">
       <!-- ガイド点線 (Max, Med, Min) -->
-      <line x1="${(boxCenterX - 6).toFixed(1)}" y1="${maxY.toFixed(1)}" x2="${(textX - 35).toFixed(1)}" y2="${maxY.toFixed(1)}" stroke="#e2e8f0" stroke-width="0.8" stroke-dasharray="2,2" />
-      <line x1="${(boxLeft + boxW).toFixed(1)}" y1="${medY.toFixed(1)}" x2="${(textX - 35).toFixed(1)}" y2="${medY.toFixed(1)}" stroke="#fed7aa" stroke-width="0.8" stroke-dasharray="2,2" />
-      <line x1="${(boxCenterX - 6).toFixed(1)}" y1="${minY.toFixed(1)}" x2="${(textX - 35).toFixed(1)}" y2="${minY.toFixed(1)}" stroke="#e2e8f0" stroke-width="0.8" stroke-dasharray="2,2" />
+      <line x1="${(boxCenterX - 5).toFixed(1)}" y1="${maxY.toFixed(1)}" x2="${(textX - 26).toFixed(1)}" y2="${maxY.toFixed(1)}" stroke="#e2e8f0" stroke-width="0.7" stroke-dasharray="2,2" />
+      <line x1="${(boxLeft + boxW).toFixed(1)}" y1="${medY.toFixed(1)}" x2="${(textX - 26).toFixed(1)}" y2="${medY.toFixed(1)}" stroke="#fed7aa" stroke-width="0.7" stroke-dasharray="2,2" />
+      <line x1="${(boxCenterX - 5).toFixed(1)}" y1="${minY.toFixed(1)}" x2="${(textX - 26).toFixed(1)}" y2="${minY.toFixed(1)}" stroke="#e2e8f0" stroke-width="0.7" stroke-dasharray="2,2" />
 
       <!-- ひげ・箱・中央値 -->
       ${whiskerLine}
@@ -954,20 +957,20 @@ function updateLegendUI(breaks, unit, stats = null) {
   }
 
   classesHtml += `
-    <div class="legend-row" style="margin-top:3px; padding-top:3px; border-top:1px dashed #e2e8f0; color:#64748b;">
+    <div class="legend-row" style="margin-top:2px; padding-top:2px; border-top:1px dashed #e2e8f0; color:#64748b;">
       <div class="legend-color-box" style="background:#e2e8f0; border-color:#94a3b8;"></div>
       <span>データなし</span>
     </div>
   `;
 
-  // 2. 箱ひげ図SVG
-  const boxplotSvg = buildLegendBoxplotSVG(currentStats, unit, 104, 114);
+  // 2. 箱ひげ図SVG（スリム版 66px）
+  const boxplotSvg = buildLegendBoxplotSVG(currentStats, unit, 66, 106);
 
   // 3. 全体HTML（2カラムレイアウト）
   legendEl.innerHTML = `
     <div class="legend-header-flex">
       <span class="legend-title">階級凡例${unitStr}</span>
-      <span class="legend-box-title">全体分布 (箱ひげ図)</span>
+      <span class="legend-box-title">全体分布</span>
     </div>
     <div class="legend-content-flex">
       <div class="legend-classes-col">
