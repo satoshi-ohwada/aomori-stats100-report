@@ -463,7 +463,7 @@ function initLeafletMap() {
 
   state.leafletMap = map;
 
-  const legend = L.control({ position: "bottomright" });
+  const legend = L.control({ position: "topright" });
   legend.onAdd = function() {
     const div = L.DomUtil.create("div", "map-legend-control");
     div.id = "leaflet-legend-box";

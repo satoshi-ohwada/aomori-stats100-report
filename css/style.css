@@ -844,18 +844,34 @@ body {
   margin-top: 1px;
 }
 
-/* Map Legend - Compact Bottom-Right */
+/* ==========================================================================
+   Map Legend - Compact Right-Center (右側中央配置)
+   ========================================================================== */
+#map-view .leaflet-top.leaflet-right,
+#map-view .leaflet-bottom.leaflet-right {
+  top: 0;
+  bottom: 0;
+  right: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-end;
+  pointer-events: none;
+  z-index: 500;
+}
+
 .map-legend-control {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(6px);
   border: 1px solid #cbd5e1;
   border-radius: var(--radius-sm);
-  padding: 5px 9px;
+  padding: 6px 10px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   font-size: 0.7rem;
   line-height: 1.35;
-  margin-bottom: 8px !important;
-  margin-right: 8px !important;
+  margin: 0 12px 0 0 !important;
+  pointer-events: auto;
 }
 
 .legend-title {
