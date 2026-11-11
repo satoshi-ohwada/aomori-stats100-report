@@ -217,16 +217,16 @@ function hexToRgb(hex) {
 // 元のツールと同一の境界線スタイル計算（塗りの明度に応じて白またはダークスレート）
 function getBorderStrokeForFeature(fillColor) {
   if (!fillColor || fillColor === "transparent") {
-    return { color: "#475569", weight: 1.5 };
+    return { color: "#64748b", weight: 1.0 };
   }
   const rgb = hexToRgb(fillColor || "#ffffff");
   const lum = 0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2];
   const isVeryDark = (lum < 60);
 
   if (isVeryDark) {
-    return { color: "#ffffff", weight: 2.0 };
+    return { color: "#ffffff", weight: 1.2 };
   }
-  return { color: "#334155", weight: 1.5 };
+  return { color: "#64748b", weight: 0.9 };
 }
 
 // 外周県境境界線の抽出（元のツールと同一アルゴリズム）
@@ -630,8 +630,8 @@ function updateLeafletMap() {
         mouseover: function(e) {
           const l = e.target;
           l.setStyle({
-            weight: 3.0,
-            color: "#0f172a",
+            weight: 2.0,
+            color: "#1e293b",
             fillOpacity: 0.96
           });
           if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
@@ -651,15 +651,15 @@ function updateLeafletMap() {
     }
   }).addTo(state.leafletMap);
 
-  // 2. 外周県境境界線の描画（最前面）
+  // 2. 外周県境境界線の描画（最前面：上品でスリムな境界線）
   const outerGeoJSON = getOuterBorderGeoJSON(AOMORI_GEOJSON);
   if (outerGeoJSON) {
     state.outerBorderLayer = L.geoJSON(outerGeoJSON, {
       style: {
-        color: "#0f172a",
-        weight: 2.4,
+        color: "#475569",
+        weight: 1.3,
         fill: false,
-        opacity: 0.95
+        opacity: 0.85
       },
       interactive: false
     }).addTo(state.leafletMap);
@@ -1284,7 +1284,7 @@ function renderReportSvgMap(varItem, breaks, paletteKey) {
     });
   }
 
-  const outerSvg = outerPathD ? `<path d="${outerPathD}" fill="none" stroke="#0f172a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />` : "";
+  const outerSvg = outerPathD ? `<path d="${outerPathD}" fill="none" stroke="#475569" stroke-width="1.2" stroke-opacity="0.85" stroke-linecap="round" stroke-linejoin="round" />` : "";
 
   // 3. 引き出し線 ＆ 市町村名・数値ラベル（チェックボックスON時、個別/両方対応）
   let labelsSvg = "";
