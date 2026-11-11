@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>青森県 市町村データ100 かんたんマップ＆レポート</title>
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="vendor/css/all.min.css">
+  
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="vendor/css/leaflet.css">
+  
+  <!-- App Styles -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- App Header -->
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-icon">
+        <i class="fa-solid fa-map-location-dot"></i>
+      </div>
+      <div>
+        <h1 class="brand-title">青森県 市町村データ100 かんたんマップ</h1>
+        <p class="brand-subtitle">指標を選ぶだけで瞬時に作図・A4分析レポートを簡単印刷</p>
+      </div>
+    </div>
+    
+    <div class="header-actions">
+      <button id="btn-open-report" class="btn-print-hero" title="A4レポートを表示して印刷・PDF保存します">
+        <i class="fa-solid fa-print"></i>
+        <span>A4レポート印刷</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- App Main Layout -->
+  <main class="app-container">
+    
+    <!-- Sidebar / Indicator Selection -->
+    <aside class="sidebar">
+      
+      <!-- Section 1: Indicator Selection -->
+      <div class="sidebar-section">
+        <div class="section-label">
+          <i class="fa-solid fa-list-check"></i>
+          <span>1. 統計データを選ぶ</span>
+        </div>
+        
+        <!-- Category Filter -->
+        <select id="cat-select" class="cat-select" title="分野で絞り込み"></select>
+
+        <!-- Quick Pick Tags -->
+        <div class="quick-picks-wrapper">
+          <div class="quick-picks-label">人気の代表指標:</div>
+          <div id="quick-picks-container" class="quick-picks-container"></div>
+        </div>
+
+        <!-- Search Input -->
+        <div class="search-wrapper">
+          <i class="fa-solid fa-magnifying-glass search-icon"></i>
+          <input type="text" id="search-input" class="search-input" placeholder="指標名や番号で検索（例: 医師, 面積）">
+        </div>
+
+        <!-- Variable List -->
+        <div id="variable-list" class="variable-list"></div>
+
+        <!-- Selected Indicator Info Card -->
+        <div class="selected-info-card">
+          <div id="selected-var-num" class="var-badge" style="display:inline-block; margin-bottom:4px;">No.2 [人口・世帯・面積]</div>
+          <div id="selected-var-name" class="info-title">人口（人）</div>
+          <div class="info-meta">
+            <span id="selected-var-source">出典: 令和8年 青森県統計年鑑</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 2: Color Palette -->
+      <div class="sidebar-section">
+        <div class="section-label">
+          <i class="fa-solid fa-palette"></i>
+          <span>2. 塗り分けカラー</span>
+        </div>
+        
+        <div class="palette-picker">
+          <button class="palette-btn active" data-palette="blue">
+            <div class="palette-swatch">
+              <span class="swatch-color" style="background:#eff6ff;"></span>
+              <span class="swatch-color" style="background:#bfdbfe;"></span>
+              <span class="swatch-color" style="background:#60a5fa;"></span>
+              <span class="swatch-color" style="background:#2563eb;"></span>
+              <span class="swatch-color" style="background:#1e40af;"></span>
+            </div>
+            <span class="palette-name">ブルー</span>
+          </button>
+          
+          <button class="palette-btn" data-palette="green">
+            <div class="palette-swatch">
+              <span class="swatch-color" style="background:#ecfdf5;"></span>
+              <span class="swatch-color" style="background:#a7f3d0;"></span>
+              <span class="swatch-color" style="background:#34d399;"></span>
+              <span class="swatch-color" style="background:#059669;"></span>
+              <span class="swatch-color" style="background:#065f46;"></span>
+            </div>
+            <span class="palette-name">グリーン</span>
+          </button>
+          
+          <button class="palette-btn" data-palette="warm">
+            <div class="palette-swatch">
+              <span class="swatch-color" style="background:#fff7ed;"></span>
+              <span class="swatch-color" style="background:#fed7aa;"></span>
+              <span class="swatch-color" style="background:#fb923c;"></span>
+              <span class="swatch-color" style="background:#ea580c;"></span>
+              <span class="swatch-color" style="background:#9a3412;"></span>
+            </div>
+            <span class="palette-name">オレンジ</span>
+          </button>
+          
+          <button class="palette-btn" data-palette="purple">
+            <div class="palette-swatch">
+              <span class="swatch-color" style="background:#faf5ff;"></span>
+              <span class="swatch-color" style="background:#e9d5ff;"></span>
+              <span class="swatch-color" style="background:#c084fc;"></span>
+              <span class="swatch-color" style="background:#9333ea;"></span>
+              <span class="swatch-color" style="background:#581c87;"></span>
+            </div>
+            <span class="palette-name">パープル</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Section 3: Print Action Guide -->
+      <div class="sidebar-section" style="border-bottom:none;">
+        <div class="section-label">
+          <i class="fa-solid fa-file-lines"></i>
+          <span>3. レポート印刷</span>
+        </div>
+        <p style="font-size:0.8rem; color:#64748b; margin-bottom:12px;">
+          現在の作図結果、全県統計、上位・下位ランキングが自動レイアウトされたA4レポートを印刷・PDF保存できます。
+        </p>
+        <button onclick="document.getElementById('btn-open-report').click()" class="btn-print-hero" style="width:100%; justify-content:center;">
+          <i class="fa-solid fa-print"></i>
+          <span>A4レポートを開く</span>
+        </button>
+      </div>
+
+    </aside>
+
+    <!-- Main Map & Floating Panels Area -->
+    <section class="content-area">
+      
+      <!-- Top Status Bar -->
+      <div class="map-status-bar">
+        <div class="active-var-title">
+          <span id="active-var-title-text">人口（人）</span>
+          <span id="active-var-unit-pill" class="unit-pill">単位: 人</span>
+        </div>
+        <div style="font-size:0.75rem; color:#64748b;">
+          ※各市町村にマウスを当てると数値・順位が表示されます
+        </div>
+      </div>
+
+      <!-- Leaflet Map Container -->
+      <div id="map-view"></div>
+
+      <!-- Floating Stats & Ranking Panel -->
+      <div class="floating-side-panel">
+        
+        <!-- Summary Stats Block -->
+        <div class="panel-block">
+          <div class="panel-block-title">
+            <span>全県統計サマリー</span>
+            <span style="font-size:0.68rem; font-weight:normal; color:#94a3b8;">40市町村</span>
+          </div>
+          <div class="stat-grid-mini">
+            <div class="stat-box-mini">
+              <div class="stat-label-mini">平均値</div>
+              <div id="float-stat-mean" class="stat-val-mini">-</div>
+            </div>
+            <div class="stat-box-mini">
+              <div class="stat-label-mini">中央値</div>
+              <div id="float-stat-median" class="stat-val-mini">-</div>
+            </div>
+            <div class="stat-box-mini">
+              <div class="stat-label-mini">最大値</div>
+              <div id="float-stat-max-val" class="stat-val-mini">-</div>
+              <div id="float-stat-max-muni" class="muni-sub">(-)</div>
+            </div>
+            <div class="stat-box-mini">
+              <div class="stat-label-mini">最小値</div>
+              <div id="float-stat-min-val" class="stat-val-mini">-</div>
+              <div id="float-stat-min-muni" class="muni-sub">(-)</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ranking TOP 3 Block -->
+        <div class="panel-block">
+          <div class="panel-block-title">
+            <span>上位 3 自治体</span>
+            <i class="fa-solid fa-crown" style="color:#eab308; font-size:0.8rem;"></i>
+          </div>
+          <ul id="float-rank-top" class="rank-list-mini"></ul>
+        </div>
+
+        <!-- Ranking BOTTOM 3 Block -->
+        <div class="panel-block">
+          <div class="panel-block-title">
+            <span>下位 3 自治体</span>
+          </div>
+          <ul id="float-rank-btm" class="rank-list-mini"></ul>
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ========================================================================
+       A4 Report Preview & Print Modal
+       ======================================================================== -->
+  <div id="report-modal" class="modal-overlay hidden">
+    <div class="modal-window">
+      
+      <!-- Modal Header -->
+      <div class="modal-header">
+        <div class="modal-title">
+          <i class="fa-solid fa-file-pdf" style="color:#ef4444;"></i>
+          <span>A4分析レポート 印刷プレビュー</span>
+        </div>
+        
+        <div class="modal-actions">
+          <button id="btn-print-report" class="btn-primary-action">
+            <i class="fa-solid fa-print"></i>
+            <span>印刷 / PDFとして保存</span>
+          </button>
+          
+          <button id="btn-save-report-png" class="btn-secondary" title="高画質PNG画像としてダウンロード">
+            <i class="fa-solid fa-download"></i>
+            <span>画像保存(PNG)</span>
+          </button>
+          
+          <button id="btn-copy-report-img" class="btn-secondary" title="クリップボードにコピーしてWordやPowerPointに貼り付け">
+            <i class="fa-regular fa-copy"></i>
+            <span>画像をコピー</span>
+          </button>
+          
+          <button id="btn-close-report" class="modal-close-btn" title="閉じる">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Modal Body (A4 Paper Sheet View) -->
+      <div class="modal-body">
+        
+        <!-- A4 Sheet (Landscape: 297mm x 210mm) -->
+        <div id="report-sheet">
+          
+          <!-- Report Header -->
+          <header class="rep-header">
+            <div class="rep-title-group">
+              <h1>青森県 市町村データ分析レポート</h1>
+              <div class="rep-sub">
+                <strong id="rep-target-var-name" style="font-size:1.05rem; color:#2563eb;">人口（人）</strong>
+                <span id="rep-unit-text" style="color:#64748b; font-size:0.85rem;">（単位: 人）</span>
+              </div>
+            </div>
+            <div class="rep-meta">
+              <div id="rep-date-text">作成日: 2026年11月11日</div>
+              <div>出典: <span id="rep-source-text">令和8年 青森県統計年鑑</span></div>
+            </div>
+          </header>
+
+          <!-- Report Grid (2 Columns) -->
+          <div class="rep-grid-landscape">
+            
+            <!-- Left: High-Precision Vector Map & Legend -->
+            <div class="rep-map-col">
+              <div class="rep-map-wrapper">
+                <div id="rep-map-render-target" style="width:100%; height:100%;"></div>
+              </div>
+              <div class="rep-legend-box">
+                <span style="font-weight:700; color:#334155;">【階級凡例】</span>
+                <div id="rep-legend-items" style="display:flex; gap:10px; align-items:center;"></div>
+              </div>
+            </div>
+
+            <!-- Right: Data, Stats & Ranking Table -->
+            <div class="rep-data-col">
+              
+              <!-- Basic Stats Table -->
+              <div class="rep-card">
+                <div class="rep-card-title">
+                  <i class="fa-solid fa-chart-pie" style="color:#2563eb;"></i>
+                  <span>基本統計量（全県）</span>
+                </div>
+                <table class="rep-table">
+                  <tbody>
+                    <tr>
+                      <th>対象自治体数</th>
+                      <td id="rep-stat-count">40 / 40 市町村</td>
+                      <th>合　計</th>
+                      <td id="rep-stat-sum">-</td>
+                    </tr>
+                    <tr>
+                      <th>平均値</th>
+                      <td id="rep-stat-mean">-</td>
+                      <th>中央値</th>
+                      <td id="rep-stat-median">-</td>
+                    </tr>
+                    <tr>
+                      <th>最　大</th>
+                      <td id="rep-stat-max">-</td>
+                      <th>最　小</th>
+                      <td id="rep-stat-min">-</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Rankings (Top 5 & Bottom 5) -->
+              <div class="rep-card">
+                <div class="rep-card-title">
+                  <i class="fa-solid fa-ranking-star" style="color:#eab308;"></i>
+                  <span>自治体ランキング</span>
+                </div>
+                <div class="rep-rank-grid">
+                  <div>
+                    <div style="font-size:0.68rem; font-weight:700; color:#059669; margin-bottom:3px;">
+                      【上位 5 自治体】
+                    </div>
+                    <div id="rep-rank-top-list"></div>
+                  </div>
+                  <div>
+                    <div style="font-size:0.68rem; font-weight:700; color:#dc2626; margin-bottom:3px;">
+                      【下位 5 自治体】
+                    </div>
+                    <div id="rep-rank-btm-list"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Notes & Observations Box (Editable directly before printing!) -->
+              <div class="rep-card rep-memo-box">
+                <div class="rep-card-title">
+                  <i class="fa-regular fa-pen-to-square" style="color:#6366f1;"></i>
+                  <span>分析所見・メモ（印刷前に編集可能）</span>
+                </div>
+                <textarea class="rep-memo-textarea" placeholder="ここに分析メモや着目ポイントを直接入力できます（印刷時にそのまま反映されます）。"></textarea>
+              </div>
+
+            </div>
+
+          </div>
+
+          <!-- Report Footer -->
+          <footer class="rep-footer">
+            <span>※本レポートは「青森県 市町村データ100 かんたんマップ」により自動生成されました。</span>
+            <span>青森県40市町村 データセット</span>
+          </footer>
+
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Vendor Scripts -->
+  <script src="vendor/js/leaflet.js"></script>
+  <script src="vendor/js/html2canvas.min.js"></script>
+
+  <!-- App Data & Scripts -->
+  <script src="js/geojson.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>
