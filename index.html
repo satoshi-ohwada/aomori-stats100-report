@@ -177,14 +177,24 @@
           <i class="fa-solid fa-tags"></i>
           <span>4. 地図ラベル表示</span>
         </div>
-        <label id="sidebar-toggle-card" class="sidebar-toggle-card" title="市町村名と数値を地図上に直接表示/非表示">
-          <input type="checkbox" id="chk-show-labels-sidebar">
-          <span class="custom-chk"><i class="fa-solid fa-check"></i></span>
-          <div class="toggle-desc">
-            <span class="desc-title">市町村名・数値を表示</span>
-            <span class="desc-sub">全40自治体の名称と統計値を地図上に表示</span>
-          </div>
-        </label>
+        <div class="sidebar-toggle-group">
+          <label id="sidebar-toggle-names" class="sidebar-toggle-card" title="市町村名を地図上に直接表示/非表示">
+            <input type="checkbox" id="chk-show-names-sidebar">
+            <span class="custom-chk"><i class="fa-solid fa-check"></i></span>
+            <div class="toggle-desc">
+              <span class="desc-title">市町村名を表示</span>
+              <span class="desc-sub">全40自治体の名称を地図上に表示</span>
+            </div>
+          </label>
+          <label id="sidebar-toggle-values" class="sidebar-toggle-card" title="数値を地図上に直接表示/非表示" style="margin-top:6px;">
+            <input type="checkbox" id="chk-show-values-sidebar">
+            <span class="custom-chk"><i class="fa-solid fa-check"></i></span>
+            <div class="toggle-desc">
+              <span class="desc-title">数値を表示</span>
+              <span class="desc-sub">現在の統計数値を地図上に表示</span>
+            </div>
+          </label>
+        </div>
       </div>
 
       <!-- Section 5: Print Action Guide -->
@@ -224,11 +234,18 @@
       
       <!-- Floating Actions on Top-Right -->
       <div class="map-floating-actions">
-        <!-- 市町村名・数値 表示切替チェックボックス -->
-        <label id="lbl-toggle-labels" class="map-floating-toggle" title="市町村名と数値を地図上に直接表示/非表示">
-          <input type="checkbox" id="chk-show-labels">
+        <!-- 市町村名 表示切替チェックボックス -->
+        <label id="lbl-toggle-names" class="map-floating-toggle" title="市町村名を地図上に直接表示/非表示">
+          <input type="checkbox" id="chk-show-names">
           <span class="custom-chk"><i class="fa-solid fa-check"></i></span>
-          <span class="toggle-text"><i class="fa-solid fa-tags"></i> 市町村名・数値</span>
+          <span class="toggle-text"><i class="fa-solid fa-tag"></i> 市町村名</span>
+        </label>
+
+        <!-- 数値 表示切替チェックボックス -->
+        <label id="lbl-toggle-values" class="map-floating-toggle" title="統計数値を地図上に直接表示/非表示">
+          <input type="checkbox" id="chk-show-values">
+          <span class="custom-chk"><i class="fa-solid fa-check"></i></span>
+          <span class="toggle-text"><i class="fa-solid fa-hashtag"></i> 数値</span>
         </label>
 
         <button id="btn-toggle-summary" class="btn-toggle-summary" title="全県統計サマリーと順位を表示/非表示">

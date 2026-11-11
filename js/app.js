@@ -88,55 +88,57 @@ const state = {
   geoJsonLayer: null,
   outerBorderLayer: null,
   legendControl: null,
-  showLabels: false,       // 市町村名・数値ラベル表示フラグ
+  showMuniNames: false,    // 市町村名ラベル表示フラグ
+  showValues: false,       // 数値ラベル表示フラグ
   labelMarkersLayer: null, // 市町村名・数値マーカー用レイヤーグループ
   currentBreaks: [],
   currentStats: null
 };
 
 // 青森県40市町村 ラベル表示用代表座標（経度, 緯度）
-// 各市町村ポリゴン内部かつ密集地域（弘前周辺・八戸周辺・三八上北・下北）での衝突を回避した最適化座標
+// 役場位置ではなく、各自治体ポリゴンそのものの幾何学的重心（Centroid）を基準とし、
+// 周囲と重なる近接密集エリア（弘前周辺、八戸・三八、下北等）のみポリゴン内部で安全にオフセット微調整した最適座標
 const MUNI_LABEL_COORDS = {
-  "青森市": [140.7542, 40.8000],
-  "弘前市": [140.4200, 40.6000],
-  "八戸市": [141.4900, 40.5100],
-  "黒石市": [140.6400, 40.6450],
-  "五所川原市": [140.4400, 40.8100],
-  "十和田市": [141.0800, 40.6150],
-  "三沢市": [141.3680, 40.6800],
-  "むつ市": [141.1800, 41.2850],
-  "つがる市": [140.3500, 40.8100],
-  "平川市": [140.6000, 40.5800],
-  "平内町": [140.9563, 40.9076],
-  "今別町": [140.5100, 41.1550],
-  "蓬田村": [140.6300, 40.9900],
-  "外ヶ浜町": [140.6300, 41.0450],
-  "鰺ヶ沢町": [140.2100, 40.7600],
-  "深浦町": [140.0000, 40.6500],
-  "西目屋村": [140.2370, 40.5500],
-  "藤崎町": [140.5000, 40.6850],
-  "大鰐町": [140.5700, 40.5200],
-  "田舎館村": [140.5600, 40.6300],
-  "板柳町": [140.4500, 40.7150],
-  "鶴田町": [140.4212, 40.7565],
-  "中泊町": [140.4400, 40.9650],
-  "野辺地町": [141.1300, 40.8650],
-  "七戸町": [141.1500, 40.7000],
-  "六戸町": [141.2900, 40.6276],
-  "横浜町": [141.2850, 41.0670],
-  "東北町": [141.2347, 40.7955],
-  "六ヶ所村": [141.3500, 40.9600],
-  "おいらせ町": [141.4250, 40.6150],
-  "大間町": [140.9100, 41.5200],
-  "東通村": [141.3800, 41.2500],
-  "風間浦村": [141.0300, 41.4350],
-  "佐井村": [140.8552, 41.4000],
-  "三戸町": [141.2500, 40.3771],
-  "五戸町": [141.3100, 40.5250],
-  "田子町": [141.0499, 40.3350],
-  "南部町": [141.3471, 40.4450],
-  "階上町": [141.6000, 40.4400],
-  "新郷村": [141.1076, 40.4473]
+  "青森市": [140.7542, 40.7701],      // 幾何学的重心
+  "弘前市": [140.3844, 40.6051],      // 幾何学的重心
+  "八戸市": [141.4812, 40.4741],      // 幾何学的重心
+  "黒石市": [140.7047, 40.6171],      // 幾何学的重心
+  "五所川原市": [140.4900, 40.8550],  // 本庁部幾何重心
+  "十和田市": [141.0570, 40.5668],    // 幾何学的重心
+  "三沢市": [141.3812, 40.7463],      // 幾何学的重心
+  "むつ市": [141.0800, 41.2750],      // 陸奥湾入を考慮したポリゴン内重心近く
+  "つがる市": [140.3496, 40.8698],    // 幾何学的重心
+  "平川市": [140.7005, 40.5183],      // 幾何学的重心
+  "平内町": [140.9562, 40.9077],      // 幾何学的重心
+  "今別町": [140.5163, 41.1603],      // 幾何学的重心
+  "蓬田村": [140.5967, 40.9950],      // 幾何学的重心
+  "外ヶ浜町": [140.5850, 41.0850],    // 蟹田部幾何重心近く（飛び地間重心が海・他町に出るため主要部内）
+  "鰺ヶ沢町": [140.1867, 40.6514],    // 幾何学的重心
+  "深浦町": [140.0183, 40.6049],      // 幾何学的重心
+  "西目屋村": [140.2370, 40.5106],    // 幾何学的重心
+  "藤崎町": [140.5050, 40.6850],      // 重心(140.5166, 40.6752)から田舎館村との重複を微調整
+  "大鰐町": [140.5514, 40.4841],      // 幾何学的重心
+  "田舎館村": [140.5550, 40.6320],    // 重心(140.5417, 40.6421)から藤崎町との重複を微調整
+  "板柳町": [140.4650, 40.7200],      // 重心(140.4811, 40.7156)から藤崎町との重複を微調整
+  "鶴田町": [140.4100, 40.7600],      // 重心(140.4212, 40.7565)から板柳町との重複を微調整
+  "中泊町": [140.4507, 41.0013],      // 主要部幾何重心（飛び地間重心が五所川原市に出るため）
+  "野辺地町": [141.1350, 40.8650],    // 幾何重心が野辺地湾(海)に出るため陸地重心近く
+  "七戸町": [141.0787, 40.7316],      // 幾何学的重心
+  "六戸町": [141.2950, 40.6280],      // 重心(141.3154)からおいらせ町との重複を微調整
+  "横浜町": [141.2850, 41.0670],      // 幾何学的重心
+  "東北町": [141.2347, 40.7955],      // 幾何学的重心
+  "六ヶ所村": [141.3311, 40.9568],    // 幾何学的重心
+  "おいらせ町": [141.4200, 40.6250],  // 重心(141.4020)から六戸町との重複を微調整
+  "大間町": [140.9150, 41.4900],      // 重心(140.9276, 41.4762)から風間浦村との重複を微調整
+  "東通村": [141.3519, 41.2783],      // 幾何学的重心
+  "風間浦村": [141.0250, 41.4400],    // 重心(141.0143, 41.4640)から大間町との重複を微調整
+  "佐井村": [140.8552, 41.3527],      // 幾何学的重心
+  "三戸町": [141.1756, 40.3771],      // 幾何学的重心
+  "五戸町": [141.2967, 40.5082],      // 幾何学的重心
+  "田子町": [141.0499, 40.3091],      // 幾何学的重心
+  "南部町": [141.3471, 40.4222],      // 幾何学的重心
+  "階上町": [141.5842, 40.4304],      // 幾何学的重心
+  "新郷村": [141.1076, 40.4473]       // 幾何学的重心
 };
 
 // 実効データの取得（実測値 or 人口1,000人あたり）
@@ -640,13 +642,13 @@ function updateLeafletMap() {
   renderMapLabels();
 }
 
-// 地図上ラベルの表示/非表示切替
-function toggleMapLabels(show) {
-  state.showLabels = show;
-  const chkMap = document.getElementById("chk-show-labels");
-  const chkSide = document.getElementById("chk-show-labels-sidebar");
-  const lblMap = document.getElementById("lbl-toggle-labels");
-  const cardSide = document.getElementById("sidebar-toggle-card");
+// 市町村名ラベルの表示切替
+function toggleMuniNames(show) {
+  state.showMuniNames = show;
+  const chkMap = document.getElementById("chk-show-names");
+  const chkSide = document.getElementById("chk-show-names-sidebar");
+  const lblMap = document.getElementById("lbl-toggle-names");
+  const cardSide = document.getElementById("sidebar-toggle-names");
 
   if (chkMap) chkMap.checked = show;
   if (chkSide) chkSide.checked = show;
@@ -656,7 +658,23 @@ function toggleMapLabels(show) {
   renderMapLabels();
 }
 
-// 地図上ラベルの描画（各自治体ポリゴン内の最適位置に市町村名＋数値を表示）
+// 数値ラベルの表示切替
+function toggleValues(show) {
+  state.showValues = show;
+  const chkMap = document.getElementById("chk-show-values");
+  const chkSide = document.getElementById("chk-show-values-sidebar");
+  const lblMap = document.getElementById("lbl-toggle-values");
+  const cardSide = document.getElementById("sidebar-toggle-values");
+
+  if (chkMap) chkMap.checked = show;
+  if (chkSide) chkSide.checked = show;
+  if (lblMap) lblMap.classList.toggle("active", show);
+  if (cardSide) cardSide.classList.toggle("active", show);
+
+  renderMapLabels();
+}
+
+// 地図上ラベルの描画（市町村名・数値を別々または両方表示）
 function renderMapLabels() {
   if (!state.leafletMap) return;
 
@@ -665,7 +683,8 @@ function renderMapLabels() {
     state.labelMarkersLayer = null;
   }
 
-  if (!state.showLabels) return;
+  // 市町村名も数値も両方OFFなら何もしない
+  if (!state.showMuniNames && !state.showValues) return;
 
   const currentVar = STATS_DATA.find(v => v.id === state.activeVarId);
   if (!currentVar) return;
@@ -677,12 +696,27 @@ function renderMapLabels() {
     const val = effective.data[muniName];
     const valStr = val !== null && val !== undefined ? formatNum(val) : "-";
 
-    const html = `
-      <div class="map-label-content">
+    let innerHtml = "";
+    let contentClass = "map-label-content";
+
+    if (state.showMuniNames && state.showValues) {
+      // 両方表示（2段組）
+      contentClass += " dual-label";
+      innerHtml = `
         <div class="muni-name">${muniName}</div>
         <div class="muni-val">${valStr}</div>
-      </div>
-    `;
+      `;
+    } else if (state.showMuniNames) {
+      // 市町村名のみ（1行コンパクト）
+      contentClass += " single-label only-name";
+      innerHtml = `<span class="muni-name">${muniName}</span>`;
+    } else if (state.showValues) {
+      // 数値のみ（1行コンパクト）
+      contentClass += " single-label only-val";
+      innerHtml = `<span class="muni-val">${valStr}</span>`;
+    }
+
+    const html = `<div class="${contentClass}">${innerHtml}</div>`;
 
     const icon = L.divIcon({
       className: "map-muni-label-marker",
@@ -823,18 +857,31 @@ function initUI() {
     });
   });
 
-  // 市町村名・数値ラベルの表示切り替えチェックボックス
-  const chkShowLabels = document.getElementById("chk-show-labels");
-  const chkShowLabelsSidebar = document.getElementById("chk-show-labels-sidebar");
+  // 市町村名・数値ラベルの個別表示切り替えチェックボックス
+  const chkShowNames = document.getElementById("chk-show-names");
+  const chkShowNamesSidebar = document.getElementById("chk-show-names-sidebar");
+  const chkShowValues = document.getElementById("chk-show-values");
+  const chkShowValuesSidebar = document.getElementById("chk-show-values-sidebar");
 
-  if (chkShowLabels) {
-    chkShowLabels.addEventListener("change", e => {
-      toggleMapLabels(e.target.checked);
+  if (chkShowNames) {
+    chkShowNames.addEventListener("change", e => {
+      toggleMuniNames(e.target.checked);
     });
   }
-  if (chkShowLabelsSidebar) {
-    chkShowLabelsSidebar.addEventListener("change", e => {
-      toggleMapLabels(e.target.checked);
+  if (chkShowNamesSidebar) {
+    chkShowNamesSidebar.addEventListener("change", e => {
+      toggleMuniNames(e.target.checked);
+    });
+  }
+
+  if (chkShowValues) {
+    chkShowValues.addEventListener("change", e => {
+      toggleValues(e.target.checked);
+    });
+  }
+  if (chkShowValuesSidebar) {
+    chkShowValuesSidebar.addEventListener("change", e => {
+      toggleValues(e.target.checked);
     });
   }
 
@@ -1190,21 +1237,41 @@ function renderReportSvgMap(varItem, breaks, paletteKey) {
 
   const outerSvg = outerPathD ? `<path d="${outerPathD}" fill="none" stroke="#0f172a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />` : "";
 
-  // 3. 市町村名・数値ラベル（チェックボックスON時）
+  // 3. 市町村名・数値ラベル（チェックボックスON時、個別/両方対応）
   let labelsSvg = "";
-  if (state.showLabels) {
+  if (state.showMuniNames || state.showValues) {
     Object.keys(MUNI_LABEL_COORDS).forEach(muniName => {
       const coord = MUNI_LABEL_COORDS[muniName];
       const pt = project(coord[0], coord[1]);
       const val = effective.data[muniName];
       const valStr = val !== null && val !== undefined ? formatNum(val) : "-";
-      labelsSvg += `
-        <g transform="translate(${pt[0].toFixed(1)}, ${pt[1].toFixed(1)})" pointer-events="none">
-          <rect x="-19" y="-9.5" width="38" height="19" rx="2.5" ry="2.5" fill="#ffffff" fill-opacity="0.90" stroke="#0f172a" stroke-width="0.5" stroke-opacity="0.25"/>
-          <text x="0" y="-1.5" text-anchor="middle" font-size="5.8" font-weight="600" fill="#334155">${muniName}</text>
-          <text x="0" y="6.5" text-anchor="middle" font-size="6.6" font-weight="700" fill="#0f172a">${valStr}</text>
-        </g>
-      `;
+
+      if (state.showMuniNames && state.showValues) {
+        // 両方表示（2段組）
+        labelsSvg += `
+          <g transform="translate(${pt[0].toFixed(1)}, ${pt[1].toFixed(1)})" pointer-events="none">
+            <rect x="-19" y="-9.5" width="38" height="19" rx="2.5" ry="2.5" fill="#ffffff" fill-opacity="0.90" stroke="#0f172a" stroke-width="0.5" stroke-opacity="0.25"/>
+            <text x="0" y="-1.5" text-anchor="middle" font-size="5.8" font-weight="600" fill="#334155">${muniName}</text>
+            <text x="0" y="6.5" text-anchor="middle" font-size="6.6" font-weight="700" fill="#0f172a">${valStr}</text>
+          </g>
+        `;
+      } else if (state.showMuniNames) {
+        // 市町村名のみ（1行）
+        labelsSvg += `
+          <g transform="translate(${pt[0].toFixed(1)}, ${pt[1].toFixed(1)})" pointer-events="none">
+            <rect x="-16" y="-6.5" width="32" height="13" rx="2" ry="2" fill="#ffffff" fill-opacity="0.90" stroke="#0f172a" stroke-width="0.5" stroke-opacity="0.25"/>
+            <text x="0" y="2.5" text-anchor="middle" font-size="6.2" font-weight="600" fill="#334155">${muniName}</text>
+          </g>
+        `;
+      } else if (state.showValues) {
+        // 数値のみ（1行）
+        labelsSvg += `
+          <g transform="translate(${pt[0].toFixed(1)}, ${pt[1].toFixed(1)})" pointer-events="none">
+            <rect x="-16" y="-6.5" width="32" height="13" rx="2" ry="2" fill="#ffffff" fill-opacity="0.90" stroke="#0f172a" stroke-width="0.5" stroke-opacity="0.25"/>
+            <text x="0" y="2.8" text-anchor="middle" font-size="6.8" font-weight="700" fill="#0f172a">${valStr}</text>
+          </g>
+        `;
+      }
     });
   }
 
