@@ -479,16 +479,22 @@ function updateLeafletMap() {
           });
           if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
             l.bringToFront();
+            if (state.outerBorderLayer) {
+              state.outerBorderLayer.bringToFront();
+            }
           }
         },
         mouseout: function(e) {
           state.geoJsonLayer.resetStyle(e.target);
+          if (state.outerBorderLayer) {
+            state.outerBorderLayer.bringToFront();
+          }
         }
       });
     }
   }).addTo(state.leafletMap);
 
-  // 2. 外周県境境界線の描画
+  // 2. 外周県境境界線の描画（最前面）
   const outerGeoJSON = getOuterBorderGeoJSON(AOMORI_GEOJSON);
   if (outerGeoJSON) {
     state.outerBorderLayer = L.geoJSON(outerGeoJSON, {
@@ -500,6 +506,7 @@ function updateLeafletMap() {
       },
       interactive: false
     }).addTo(state.leafletMap);
+    state.outerBorderLayer.bringToFront();
   }
 
   fitMapToContainer();
@@ -515,16 +522,28 @@ function updateLegendUI(breaks, unit) {
   const unitStr = unit ? ` (${unit})` : "";
 
   let html = `<div class="legend-title">階級凡例${unitStr}</div>`;
-  for (let i = 0; i < colors.length; i++) {
-    const low = formatNum(breaks[i]);
-    const high = formatNum(breaks[i + 1]);
+  const isUniform = breaks && breaks.length >= 2 && breaks[0] === breaks[breaks.length - 1];
+
+  if (isUniform) {
     html += `
       <div class="legend-row">
-        <div class="legend-color-box" style="background:${colors[i]}; border-color:#334155;"></div>
-        <span>${low} 〜 ${high}</span>
+        <div class="legend-color-box" style="background:${colors[colors.length - 1]}; border-color:#334155;"></div>
+        <span>全域同一値: ${formatNum(breaks[0])}</span>
       </div>
     `;
+  } else {
+    for (let i = 0; i < colors.length; i++) {
+      const low = formatNum(breaks[i]);
+      const high = formatNum(breaks[i + 1]);
+      html += `
+        <div class="legend-row">
+          <div class="legend-color-box" style="background:${colors[i]}; border-color:#334155;"></div>
+          <span>${low} 〜 ${high}</span>
+        </div>
+      `;
+    }
   }
+
   html += `
     <div class="legend-row" style="margin-top:3px; padding-top:3px; border-top:1px dashed #e2e8f0; color:#64748b;">
       <div class="legend-color-box" style="background:#e2e8f0; border-color:#94a3b8;"></div>
@@ -660,6 +679,28 @@ function initUI() {
     });
   }
 
+  // モーダル背景クリックで閉じる
+  if (modalOverlay) {
+    modalOverlay.addEventListener("click", (e) => {
+      if (e.target === modalOverlay) {
+        modalOverlay.classList.add("hidden");
+      }
+    });
+  }
+
+  // Escapeキーでモーダル・パネルを閉じる
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      if (modalOverlay && !modalOverlay.classList.contains("hidden")) {
+        modalOverlay.classList.add("hidden");
+      }
+      if (summaryPanel && !summaryPanel.classList.contains("hidden")) {
+        summaryPanel.classList.add("hidden");
+        if (btnToggleSummary) btnToggleSummary.classList.remove("active");
+      }
+    }
+  });
+
   document.getElementById("btn-print-report")?.addEventListener("click", () => {
     window.print();
   });
@@ -686,6 +727,16 @@ function filterVariables() {
     const matchKw = (!kw || item.name.toLowerCase().includes(kw) || item.fullName.toLowerCase().includes(kw) || item.num.includes(kw));
     return matchCat && matchKw;
   });
+
+  if (state.filteredList.length === 0) {
+    listContainer.innerHTML = `
+      <div style="padding:24px 16px; text-align:center; color:#94a3b8; font-size:0.8rem;">
+        <i class="fa-solid fa-magnifying-glass" style="font-size:1.4rem; margin-bottom:8px; display:block; opacity:0.5;"></i>
+        <span>該当する統計指標が見つかりません</span>
+      </div>
+    `;
+    return;
+  }
 
   listContainer.innerHTML = state.filteredList.map(item => `
     <div class="variable-item ${item.id === state.activeVarId ? 'selected' : ''}" data-id="${item.id}">
@@ -865,7 +916,7 @@ function renderReportSvgMap(varItem, breaks, paletteKey) {
 }
 
 /* ==========================================================================
-   Distribution Chart Generator (Histogram & KDE) - 元のツール仕様
+   Distribution Chart Generator (Histogram & KDE) - 元のツール仕様 (極値・同値安全対応)
    ========================================================================== */
 function buildReportDistributionSVG(nums, min, mean, median, max, width = 310, height = 96, unitStr = "", formatValFn = null) {
   if (!nums || nums.length < 3) {
@@ -883,17 +934,22 @@ function buildReportDistributionSVG(nums, min, mean, median, max, width = 310, h
   nums.forEach(v => {
     let idx = Math.floor((v - min) / binWidth);
     if (idx >= numBins) idx = numBins - 1;
+    if (idx < 0) idx = 0;
     bins[idx]++;
   });
   const maxBinCount = Math.max(...bins, 1);
 
-  // カーネル密度推定 (KDE) - Silverman's rule of thumb
+  // カーネル密度推定 (KDE) - Silverman's rule of thumb (0除算・NaN完全防止ガード)
   const variance = nums.reduce((acc, v) => acc + Math.pow(v - mean, 2), 0) / (n - 1 || 1);
   const sd = Math.sqrt(variance) || 1;
   const q1 = computePercentile(nums, 0.25);
   const q3 = computePercentile(nums, 0.75);
   const iqr = (q3 - q1) || sd;
-  const bw = (0.9 * Math.min(sd, iqr / 1.34) * Math.pow(n, -0.2)) || (range / 8);
+  
+  let bw = 0.9 * Math.min(sd, (iqr / 1.34) || sd) * Math.pow(n, -0.2);
+  if (!bw || isNaN(bw) || bw <= 0) {
+    bw = (range / 8) || 1;
+  }
 
   const pts = 60;
   const kdePoints = [];
@@ -1021,7 +1077,7 @@ function buildReportDistributionSVG(nums, min, mean, median, max, width = 310, h
 }
 
 /* ==========================================================================
-   Municipalities Vertical Bar Chart Generator (40 Municipalities in Descending Order) - 元のツール仕様
+   Municipalities Vertical Bar Chart Generator (40 Municipalities in Descending Order) - 元のツール仕様 (全正・正負混在・全負完全対応)
    ========================================================================== */
 function buildMuniVerticalBarChartSVG(sortedDescList, formatReportVal, axisUnitStr, width = 630, height = 200, mean = null, breaks = null, paletteKey = null) {
   if (!sortedDescList || sortedDescList.length === 0) {
@@ -1031,6 +1087,7 @@ function buildMuniVerticalBarChartSVG(sortedDescList, formatReportVal, axisUnitS
   const validVals = sortedDescList.map(item => item.val).filter(v => v !== null && v !== undefined && !isNaN(v));
   const maxVal = validVals.length > 0 ? Math.max(...validVals) : 0;
   const minVal = validVals.length > 0 ? Math.min(...validVals) : 0;
+  const range = (maxVal - minVal) || 1;
 
   const padL = 44;
   const padR = 12;
@@ -1044,9 +1101,18 @@ function buildMuniVerticalBarChartSVG(sortedDescList, formatReportVal, axisUnitS
   const barW = Math.max(5, Math.min(10.5, colStep - 3.2));
 
   const hasNeg = minVal < 0;
+  const hasPos = maxVal > 0;
+
+  // 原点0のY座標計算（全正、正負混在、全負の各ケースに完全対応）
   let zeroY = padT + chartH;
-  if (hasNeg) {
-    zeroY = padT + (maxVal / (maxVal - minVal || 1)) * chartH;
+  if (hasNeg && hasPos) {
+    zeroY = padT + (maxVal / range) * chartH;
+  } else if (hasNeg && !hasPos) {
+    // 全て負値の場合、上端（padT）が0の基準
+    zeroY = padT;
+  } else {
+    // 全て正値の場合、下端（padT + chartH）が0の基準
+    zeroY = padT + chartH;
   }
 
   let svgInner = '';
@@ -1056,17 +1122,22 @@ function buildMuniVerticalBarChartSVG(sortedDescList, formatReportVal, axisUnitS
   for (let i = 0; i <= numGridLines; i++) {
     const ratio = i / numGridLines;
     const y = padT + chartH * (1 - ratio);
-    const gridVal = hasNeg ? (minVal + (maxVal - minVal) * ratio) : (maxVal * ratio);
+    const gridVal = hasNeg ? (minVal + range * ratio) : (maxVal * ratio);
 
     svgInner += `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${padL + chartW}" y2="${y.toFixed(1)}" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="${i === 0 ? 'none' : '2,2'}" />`;
     svgInner += `<text x="${padL - 5}" y="${(y + 3).toFixed(1)}" text-anchor="end" font-size="7.2" font-family="ui-monospace, monospace" fill="#64748b">${formatReportVal(gridVal)}</text>`;
+  }
+
+  // 正負混在時の原点0基準線
+  if (hasNeg && hasPos) {
+    svgInner += `<line x1="${padL}" y1="${zeroY.toFixed(1)}" x2="${padL + chartW}" y2="${zeroY.toFixed(1)}" stroke="#94a3b8" stroke-width="1.2" />`;
   }
 
   // 平均値基準線
   if (mean !== null && !isNaN(mean)) {
     let meanY;
     if (hasNeg) {
-      meanY = padT + ((maxVal - mean) / (maxVal - minVal || 1)) * chartH;
+      meanY = padT + ((maxVal - mean) / range) * chartH;
     } else {
       meanY = padT + chartH - (mean / (maxVal || 1)) * chartH;
     }
@@ -1093,20 +1164,24 @@ function buildMuniVerticalBarChartSVG(sortedDescList, formatReportVal, axisUnitS
       if (!hasNeg) {
         barH = maxVal > 0 ? (val / maxVal) * chartH : 0;
         barY = padT + chartH - barH;
-      } else {
+      } else if (hasNeg && hasPos) {
         if (val >= 0) {
-          barH = ((val) / (maxVal - minVal || 1)) * chartH;
+          barH = (val / range) * chartH;
           barY = zeroY - barH;
         } else {
-          barH = (Math.abs(val) / (maxVal - minVal || 1)) * chartH;
+          barH = (Math.abs(val) / range) * chartH;
           barY = zeroY;
         }
+      } else {
+        // 全て負値の場合
+        barH = (Math.abs(val) / (Math.abs(minVal) || 1)) * chartH;
+        barY = padT;
       }
     }
 
     barH = Math.max(1.5, barH);
 
-    // バー矩形（最小階級が白色でもくっきり見えるよう濃いグレーで縁取り）
+    // バー矩形（最小階級が白色でもくっきり見えるよう濃いスレートグレーで縁取り）
     svgInner += `<rect x="${x.toFixed(1)}" y="${barY.toFixed(1)}" width="${barW.toFixed(1)}" height="${barH.toFixed(1)}" rx="1.5" ry="1.5" fill="${color}" stroke="#334155" stroke-width="0.9">
       <title>${rank}位: ${name} (${formatReportVal(val)})</title>
     </rect>`;
@@ -1226,7 +1301,7 @@ function openReportModal() {
 }
 
 /* ==========================================================================
-   Image Export / Clipboard
+   Image Export / Clipboard (シャドウ退避・高精細PNG出力)
    ========================================================================== */
 async function saveReportAsPNG() {
   const sheet = document.getElementById("report-sheet");
@@ -1237,11 +1312,16 @@ async function saveReportAsPNG() {
     return;
   }
 
+  // レポート用紙の外枠シャドウを一時解除してクリーンな白地画像にする
+  const prevBoxShadow = sheet.style.boxShadow;
+  sheet.style.boxShadow = "none";
+
   try {
     const canvas = await html2canvas(sheet, {
       scale: 2.0,
       useCORS: true,
-      backgroundColor: "#ffffff"
+      backgroundColor: "#ffffff",
+      logging: false
     });
 
     const dataUrl = canvas.toDataURL("image/png");
@@ -1256,6 +1336,8 @@ async function saveReportAsPNG() {
   } catch (err) {
     console.error("PNG export error:", err);
     alert("画像の保存に失敗しました: " + err.message);
+  } finally {
+    sheet.style.boxShadow = prevBoxShadow;
   }
 }
 
@@ -1268,19 +1350,29 @@ async function copyReportToClipboard() {
     return;
   }
 
+  // レポート用紙の外枠シャドウを一時解除
+  const prevBoxShadow = sheet.style.boxShadow;
+  sheet.style.boxShadow = "none";
+
   try {
     const canvas = await html2canvas(sheet, {
       scale: 2.0,
       useCORS: true,
-      backgroundColor: "#ffffff"
+      backgroundColor: "#ffffff",
+      logging: false
     });
 
     canvas.toBlob(async blob => {
       if (navigator.clipboard && window.ClipboardItem) {
-        await navigator.clipboard.write([
-          new window.ClipboardItem({ "image/png": blob })
-        ]);
-        alert("レポート画像をクリップボードにコピーしました！資料にそのまま貼り付けできます。");
+        try {
+          await navigator.clipboard.write([
+            new window.ClipboardItem({ "image/png": blob })
+          ]);
+          alert("レポート画像をクリップボードにコピーしました！資料にそのまま貼り付けできます。");
+        } catch (copyErr) {
+          console.error("Clipboard write error:", copyErr);
+          alert("クリップボードへの書き込みに失敗しました: " + copyErr.message);
+        }
       } else {
         alert("お使いのブラウザはクリップボードへの画像コピーに対応していません。");
       }
@@ -1288,6 +1380,8 @@ async function copyReportToClipboard() {
   } catch (err) {
     console.error("Copy image error:", err);
     alert("クリップボードへのコピーに失敗しました: " + err.message);
+  } finally {
+    sheet.style.boxShadow = prevBoxShadow;
   }
 }
 

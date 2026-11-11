@@ -1193,7 +1193,7 @@ body {
 }
 
 /* ==========================================================================
-   Print CSS (@media print: A4 Portrait)
+   Print CSS (@media print: A4 Portrait - 1枚完結・改ページはみ出し防止)
    ========================================================================== */
 @media print {
   * {
@@ -1213,6 +1213,7 @@ body {
     width: 100% !important;
     height: 100% !important;
     overflow: visible !important;
+    visibility: visible !important;
   }
 
   .app-header,
@@ -1220,49 +1221,69 @@ body {
   .content-area,
   .modal-header,
   .modal-actions,
-  .modal-close-btn {
+  .modal-close-btn,
+  .floating-side-panel,
+  .map-floating-header,
+  .map-floating-actions {
     display: none !important;
   }
 
   .modal-overlay {
     position: static !important;
     display: block !important;
-    background: none !important;
+    background: #ffffff !important;
     padding: 0 !important;
     margin: 0 !important;
     width: 100% !important;
     height: 100% !important;
+    overflow: visible !important;
+    visibility: visible !important;
+    z-index: 1 !important;
   }
 
   .modal-window {
     background: #ffffff !important;
     box-shadow: none !important;
     width: 100% !important;
-    height: auto !important;
+    height: 100% !important;
     max-width: none !important;
     border-radius: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
   }
 
   .modal-body {
     background: #ffffff !important;
     padding: 0 !important;
+    margin: 0 !important;
     overflow: visible !important;
     display: block !important;
+    height: 100% !important;
   }
 
   #report-sheet {
+    display: flex !important;
+    flex-direction: column !important;
+    position: static !important;
     box-shadow: none !important;
     border: none !important;
-    width: 100% !important;
-    height: auto !important;
-    min-height: auto !important;
-    padding: 0 !important;
-    page-break-after: avoid !important;
+    margin: 0 !important;
+    background: #ffffff !important;
+    box-sizing: border-box !important;
+    visibility: visible !important;
+    width: 194mm !important;
+    height: 272mm !important;
+    max-width: 194mm !important;
+    max-height: 272mm !important;
+    padding: 2mm 3.5mm !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 
-  .rep-memo-textarea {
-    border: 1px solid #e2e8f0 !important;
-    background: #ffffff !important;
+  #report-sheet * {
+    visibility: visible !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 }
 
