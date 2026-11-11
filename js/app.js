@@ -802,35 +802,12 @@ function initUI() {
     copyReportToClipboard();
   });
 
-  // 指標選択スライダーの操作イベント登録
-  const varSlider = document.getElementById("var-slider");
-  const btnVarPrev = document.getElementById("btn-var-prev");
-  const btnVarNext = document.getElementById("btn-var-next");
+  // 上下移動ナビゲーションボタンの登録
+  const btnVarUp = document.getElementById("btn-var-up");
+  const btnVarDown = document.getElementById("btn-var-down");
 
-  if (varSlider) {
-    // スライダードラッグ・変更時
-    varSlider.addEventListener("input", (e) => {
-      const idx = parseInt(e.target.value, 10) - 1;
-      if (state.filteredList && state.filteredList[idx]) {
-        selectVariable(state.filteredList[idx].id, true);
-      }
-    });
-
-    // スライダー上でホイール回転した際も前後に移動
-    varSlider.addEventListener("wheel", (e) => {
-      e.preventDefault();
-      if (!state.filteredList || state.filteredList.length === 0) return;
-      const currentIdx = state.filteredList.findIndex(item => item.id === state.activeVarId);
-      const delta = e.deltaY > 0 ? 1 : -1;
-      const nextIdx = Math.max(0, Math.min(state.filteredList.length - 1, currentIdx + delta));
-      if (nextIdx !== currentIdx) {
-        selectVariable(state.filteredList[nextIdx].id, true);
-      }
-    }, { passive: false });
-  }
-
-  if (btnVarPrev) {
-    btnVarPrev.addEventListener("click", () => {
+  if (btnVarUp) {
+    btnVarUp.addEventListener("click", () => {
       if (!state.filteredList || state.filteredList.length === 0) return;
       const currentIdx = state.filteredList.findIndex(item => item.id === state.activeVarId);
       if (currentIdx > 0) {
@@ -839,8 +816,8 @@ function initUI() {
     });
   }
 
-  if (btnVarNext) {
-    btnVarNext.addEventListener("click", () => {
+  if (btnVarDown) {
+    btnVarDown.addEventListener("click", () => {
       if (!state.filteredList || state.filteredList.length === 0) return;
       const currentIdx = state.filteredList.findIndex(item => item.id === state.activeVarId);
       if (currentIdx < state.filteredList.length - 1) {
@@ -853,39 +830,32 @@ function initUI() {
   selectVariable(state.activeVarId, true);
 }
 
-// スライダーUI（つまみ位置・カウンター・前へ/次へボタン）を同期
+// 選択中の現在位置カウンターおよび「上へ」「下へ」ボタンの活性状態を同期
 function syncSliderUI() {
-  const slider = document.getElementById("var-slider");
   const counter = document.getElementById("slider-counter");
-  const btnPrev = document.getElementById("btn-var-prev");
-  const btnNext = document.getElementById("btn-var-next");
-  if (!slider || !state.filteredList) return;
+  const btnUp = document.getElementById("btn-var-up");
+  const btnDown = document.getElementById("btn-var-down");
+  if (!state.filteredList) return;
 
   const total = state.filteredList.length;
   if (total === 0) {
-    slider.disabled = true;
-    if (btnPrev) btnPrev.disabled = true;
-    if (btnNext) btnNext.disabled = true;
+    if (btnUp) btnUp.disabled = true;
+    if (btnDown) btnDown.disabled = true;
     if (counter) counter.textContent = "0 / 0";
     return;
   }
 
-  slider.disabled = false;
-  slider.min = "1";
-  slider.max = String(total);
-
   const currentIdx = state.filteredList.findIndex(item => item.id === state.activeVarId);
   const val = currentIdx >= 0 ? currentIdx + 1 : 1;
-  slider.value = String(val);
 
   if (counter) {
-    counter.textContent = `${val} / ${total}`;
+    counter.textContent = `No. ${val} / ${total}`;
   }
-  if (btnPrev) {
-    btnPrev.disabled = (val <= 1);
+  if (btnUp) {
+    btnUp.disabled = (val <= 1);
   }
-  if (btnNext) {
-    btnNext.disabled = (val >= total);
+  if (btnDown) {
+    btnDown.disabled = (val >= total);
   }
 }
 

@@ -271,165 +271,106 @@ body {
   font-size: 0.8rem;
 }
 
-/* Indicator Mouse Slider Card (項目をマウスでスライド選択するコントロール) */
-.var-slider-card {
-  background: #f8fafc;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-sm);
-  padding: 8px 10px;
-  margin-bottom: 10px;
-}
-
-.var-slider-header {
+/* Variable List Navigation Bar (上下移動ナビゲーション) */
+.var-list-nav-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 6px;
+  background: #f8fafc;
+  border: 1px solid var(--border-color);
+  border-bottom: none;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  padding: 6px 10px;
 }
 
-.var-slider-title {
+.var-list-counter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 0.74rem;
+}
+
+.counter-label {
+  color: #475569;
   font-weight: 600;
-  color: #334155;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.counter-badge {
+  font-weight: 700;
+  color: var(--primary);
+  background: var(--primary-light);
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-variant-numeric: tabular-nums;
+  border: 1px solid rgba(37, 99, 235, 0.2);
+}
+
+.var-list-step-btns {
   display: flex;
   align-items: center;
   gap: 5px;
 }
 
-.var-slider-counter {
+.btn-var-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
   font-size: 0.72rem;
-  font-weight: 700;
-  color: var(--primary);
-  background: var(--primary-light);
-  padding: 1px 7px;
-  border-radius: 10px;
-  font-variant-numeric: tabular-nums;
-}
-
-.var-slider-controls {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.var-slider-btn {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  font-weight: 600;
   background: #ffffff;
   border: 1px solid #cbd5e1;
   border-radius: 4px;
-  color: #475569;
+  color: #334155;
   cursor: pointer;
-  flex-shrink: 0;
   transition: all 0.15s ease;
-  font-size: 0.75rem;
 }
 
-.var-slider-btn:hover:not(:disabled) {
+.btn-var-step:hover:not(:disabled) {
   background: var(--primary);
   color: #ffffff;
   border-color: var(--primary);
 }
 
-.var-slider-btn:active:not(:disabled) {
-  transform: scale(0.95);
+.btn-var-step:active:not(:disabled) {
+  transform: scale(0.96);
 }
 
-.var-slider-btn:disabled {
+.btn-var-step:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
 
-/* スライダー本体（input[type=range]）を大きく・つまみやすく */
-.var-slider-range {
-  flex: 1;
-  -webkit-appearance: none;
-  appearance: none;
-  height: 8px;
-  border-radius: 4px;
-  background: #cbd5e1;
-  outline: none;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.var-slider-range:hover {
-  background: #94a3b8;
-}
-
-/* スライダーのつまみ (thumb) を大きく掴みやすくする */
-.var-slider-range::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: var(--primary);
-  border: 2px solid #ffffff;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
-  cursor: grab;
-  transition: transform 0.1s ease, background 0.15s ease;
-}
-
-.var-slider-range::-webkit-slider-thumb:hover {
-  transform: scale(1.15);
-  background: var(--primary-hover);
-}
-
-.var-slider-range::-webkit-slider-thumb:active {
-  cursor: grabbing;
-  transform: scale(1.25);
-  background: #1d4ed8;
-}
-
-.var-slider-range::-moz-range-thumb {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: var(--primary);
-  border: 2px solid #ffffff;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
-  cursor: grab;
-  transition: transform 0.1s ease, background 0.15s ease;
-}
-
-.var-slider-range::-moz-range-thumb:hover {
-  transform: scale(1.15);
-}
-
-.var-slider-range::-moz-range-thumb:active {
-  cursor: grabbing;
-  transform: scale(1.25);
-}
-
-/* Variable Select List (項目を選択する欄) */
+/* Variable Select List (項目を選択する欄: スクロールバースライダーを左端に配置) */
 .variable-list {
-  max-height: 220px;
-  overflow-y: scroll; /* 常にスライダーを表示し、マウスですぐに掴めるようにする */
+  max-height: 240px;
+  overflow-y: scroll; /* 常に左端スライダーを表示し、マウスですぐに掴めるようにする */
+  direction: rtl; /* ★ブラウザの上下移動スライダーを「左端」に配置★ */
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-sm);
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
   background: #ffffff;
 }
 
-/* 項目選択リスト専用の太めで掴みやすいスライダー */
+/* 項目選択リスト専用の太めで掴みやすい左端スライダー */
 .variable-list::-webkit-scrollbar {
-  width: 14px; /* 14pxの幅広スライダーでマウスでの掴みやすさを最大化 */
+  width: 16px; /* 16pxの幅広スライダーでマウスでの掴みやすさを最大化 */
 }
 
 .variable-list::-webkit-scrollbar-track {
-  background: #f8fafc;
-  border-left: 1px solid #e2e8f0;
+  background: #f1f5f9;
+  border-right: 1px solid #cbd5e1; /* リスト項目との境界を明確に */
 }
 
 .variable-list::-webkit-scrollbar-thumb {
   background: #94a3b8;
-  border: 2px solid #f8fafc;
-  border-radius: 7px;
-  min-height: 36px; /* つまみが小さくなりすぎないよう最小高さを確保 */
+  border: 2px solid #f1f5f9;
+  border-radius: 8px;
+  min-height: 40px; /* つまみが小さくなりすぎないよう最小高さを確保 */
   cursor: grab;
+  transition: background-color 0.15s ease;
 }
 
 .variable-list::-webkit-scrollbar-thumb:hover {
@@ -441,8 +382,11 @@ body {
   cursor: grabbing;
 }
 
+/* 中身のアイテムは通常の左詰め（ltr）に戻す */
 .variable-item {
-  padding: 7px 10px;
+  direction: ltr; /* テキストやバッジを通常の左から右へ */
+  text-align: left;
+  padding: 8px 10px;
   font-size: 0.82rem;
   border-bottom: 1px solid #f1f5f9;
   cursor: pointer;

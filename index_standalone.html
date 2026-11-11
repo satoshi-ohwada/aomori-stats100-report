@@ -287,165 +287,106 @@ body {
   font-size: 0.8rem;
 }
 
-/* Indicator Mouse Slider Card (項目をマウスでスライド選択するコントロール) */
-.var-slider-card {
-  background: #f8fafc;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-sm);
-  padding: 8px 10px;
-  margin-bottom: 10px;
-}
-
-.var-slider-header {
+/* Variable List Navigation Bar (上下移動ナビゲーション) */
+.var-list-nav-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 6px;
+  background: #f8fafc;
+  border: 1px solid var(--border-color);
+  border-bottom: none;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  padding: 6px 10px;
 }
 
-.var-slider-title {
+.var-list-counter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 0.74rem;
+}
+
+.counter-label {
+  color: #475569;
   font-weight: 600;
-  color: #334155;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.counter-badge {
+  font-weight: 700;
+  color: var(--primary);
+  background: var(--primary-light);
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-variant-numeric: tabular-nums;
+  border: 1px solid rgba(37, 99, 235, 0.2);
+}
+
+.var-list-step-btns {
   display: flex;
   align-items: center;
   gap: 5px;
 }
 
-.var-slider-counter {
+.btn-var-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
   font-size: 0.72rem;
-  font-weight: 700;
-  color: var(--primary);
-  background: var(--primary-light);
-  padding: 1px 7px;
-  border-radius: 10px;
-  font-variant-numeric: tabular-nums;
-}
-
-.var-slider-controls {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.var-slider-btn {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  font-weight: 600;
   background: #ffffff;
   border: 1px solid #cbd5e1;
   border-radius: 4px;
-  color: #475569;
+  color: #334155;
   cursor: pointer;
-  flex-shrink: 0;
   transition: all 0.15s ease;
-  font-size: 0.75rem;
 }
 
-.var-slider-btn:hover:not(:disabled) {
+.btn-var-step:hover:not(:disabled) {
   background: var(--primary);
   color: #ffffff;
   border-color: var(--primary);
 }
 
-.var-slider-btn:active:not(:disabled) {
-  transform: scale(0.95);
+.btn-var-step:active:not(:disabled) {
+  transform: scale(0.96);
 }
 
-.var-slider-btn:disabled {
+.btn-var-step:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
 
-/* スライダー本体（input[type=range]）を大きく・つまみやすく */
-.var-slider-range {
-  flex: 1;
-  -webkit-appearance: none;
-  appearance: none;
-  height: 8px;
-  border-radius: 4px;
-  background: #cbd5e1;
-  outline: none;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.var-slider-range:hover {
-  background: #94a3b8;
-}
-
-/* スライダーのつまみ (thumb) を大きく掴みやすくする */
-.var-slider-range::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: var(--primary);
-  border: 2px solid #ffffff;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
-  cursor: grab;
-  transition: transform 0.1s ease, background 0.15s ease;
-}
-
-.var-slider-range::-webkit-slider-thumb:hover {
-  transform: scale(1.15);
-  background: var(--primary-hover);
-}
-
-.var-slider-range::-webkit-slider-thumb:active {
-  cursor: grabbing;
-  transform: scale(1.25);
-  background: #1d4ed8;
-}
-
-.var-slider-range::-moz-range-thumb {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: var(--primary);
-  border: 2px solid #ffffff;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
-  cursor: grab;
-  transition: transform 0.1s ease, background 0.15s ease;
-}
-
-.var-slider-range::-moz-range-thumb:hover {
-  transform: scale(1.15);
-}
-
-.var-slider-range::-moz-range-thumb:active {
-  cursor: grabbing;
-  transform: scale(1.25);
-}
-
-/* Variable Select List (項目を選択する欄) */
+/* Variable Select List (項目を選択する欄: スクロールバースライダーを左端に配置) */
 .variable-list {
-  max-height: 220px;
-  overflow-y: scroll; /* 常にスライダーを表示し、マウスですぐに掴めるようにする */
+  max-height: 240px;
+  overflow-y: scroll; /* 常に左端スライダーを表示し、マウスですぐに掴めるようにする */
+  direction: rtl; /* ★ブラウザの上下移動スライダーを「左端」に配置★ */
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-sm);
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
   background: #ffffff;
 }
 
-/* 項目選択リスト専用の太めで掴みやすいスライダー */
+/* 項目選択リスト専用の太めで掴みやすい左端スライダー */
 .variable-list::-webkit-scrollbar {
-  width: 14px; /* 14pxの幅広スライダーでマウスでの掴みやすさを最大化 */
+  width: 16px; /* 16pxの幅広スライダーでマウスでの掴みやすさを最大化 */
 }
 
 .variable-list::-webkit-scrollbar-track {
-  background: #f8fafc;
-  border-left: 1px solid #e2e8f0;
+  background: #f1f5f9;
+  border-right: 1px solid #cbd5e1; /* リスト項目との境界を明確に */
 }
 
 .variable-list::-webkit-scrollbar-thumb {
   background: #94a3b8;
-  border: 2px solid #f8fafc;
-  border-radius: 7px;
-  min-height: 36px; /* つまみが小さくなりすぎないよう最小高さを確保 */
+  border: 2px solid #f1f5f9;
+  border-radius: 8px;
+  min-height: 40px; /* つまみが小さくなりすぎないよう最小高さを確保 */
   cursor: grab;
+  transition: background-color 0.15s ease;
 }
 
 .variable-list::-webkit-scrollbar-thumb:hover {
@@ -457,8 +398,11 @@ body {
   cursor: grabbing;
 }
 
+/* 中身のアイテムは通常の左詰め（ltr）に戻す */
 .variable-item {
-  padding: 7px 10px;
+  direction: ltr; /* テキストやバッジを通常の左から右へ */
+  text-align: left;
+  padding: 8px 10px;
   font-size: 0.82rem;
   border-bottom: 1px solid #f1f5f9;
   cursor: pointer;
@@ -1561,32 +1505,31 @@ body {
           <div id="quick-picks-container" class="quick-picks-container"></div>
         </div>
 
-        <!-- Mouse Slider Control for Indicator Selection -->
-        <div class="var-slider-card">
-          <div class="var-slider-header">
-            <span class="var-slider-title">
-              <i class="fa-solid fa-sliders"></i> 指標選択スライダー
-            </span>
-            <span id="slider-counter" class="var-slider-counter">2 / 105</span>
-          </div>
-          <div class="var-slider-controls">
-            <button type="button" id="btn-var-prev" class="var-slider-btn" title="前の指標へ (←)" aria-label="前の指標">
-              <i class="fa-solid fa-chevron-left"></i>
-            </button>
-            <input type="range" id="var-slider" min="1" max="105" value="2" step="1" class="var-slider-range" title="マウスでドラッグして指標をかんたんに選択">
-            <button type="button" id="btn-var-next" class="var-slider-btn" title="次の指標へ (→)" aria-label="次の指標">
-              <i class="fa-solid fa-chevron-right"></i>
-            </button>
-          </div>
-        </div>
-
         <!-- Search Input -->
         <div class="search-wrapper">
           <i class="fa-solid fa-magnifying-glass search-icon"></i>
           <input type="text" id="search-input" class="search-input" placeholder="指標名や番号で検索（例: 医師, 面積）">
         </div>
 
-        <!-- Variable List -->
+        <!-- Variable List Navigation Bar (上下移動ナビゲーション) -->
+        <div class="var-list-nav-bar">
+          <div class="var-list-counter" id="var-list-counter">
+            <span class="counter-label"><i class="fa-solid fa-arrows-up-down"></i> 選択中:</span>
+            <span class="counter-badge" id="slider-counter">No. 2 / 105</span>
+          </div>
+          <div class="var-list-step-btns">
+            <button type="button" id="btn-var-up" class="btn-var-step" title="1つ上の指標へ (▲)" aria-label="1つ上の指標へ">
+              <i class="fa-solid fa-chevron-up"></i>
+              <span>上へ</span>
+            </button>
+            <button type="button" id="btn-var-down" class="btn-var-step" title="1つ下の指標へ (▼)" aria-label="1つ下の指標へ">
+              <i class="fa-solid fa-chevron-down"></i>
+              <span>下へ</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Variable List (左端に上下スライダーを配置) -->
         <div id="variable-list" class="variable-list"></div>
 
         <!-- Selected Indicator Info Card -->
@@ -8114,35 +8057,12 @@ function initUI() {
     copyReportToClipboard();
   });
 
-  // 指標選択スライダーの操作イベント登録
-  const varSlider = document.getElementById("var-slider");
-  const btnVarPrev = document.getElementById("btn-var-prev");
-  const btnVarNext = document.getElementById("btn-var-next");
+  // 上下移動ナビゲーションボタンの登録
+  const btnVarUp = document.getElementById("btn-var-up");
+  const btnVarDown = document.getElementById("btn-var-down");
 
-  if (varSlider) {
-    // スライダードラッグ・変更時
-    varSlider.addEventListener("input", (e) => {
-      const idx = parseInt(e.target.value, 10) - 1;
-      if (state.filteredList && state.filteredList[idx]) {
-        selectVariable(state.filteredList[idx].id, true);
-      }
-    });
-
-    // スライダー上でホイール回転した際も前後に移動
-    varSlider.addEventListener("wheel", (e) => {
-      e.preventDefault();
-      if (!state.filteredList || state.filteredList.length === 0) return;
-      const currentIdx = state.filteredList.findIndex(item => item.id === state.activeVarId);
-      const delta = e.deltaY > 0 ? 1 : -1;
-      const nextIdx = Math.max(0, Math.min(state.filteredList.length - 1, currentIdx + delta));
-      if (nextIdx !== currentIdx) {
-        selectVariable(state.filteredList[nextIdx].id, true);
-      }
-    }, { passive: false });
-  }
-
-  if (btnVarPrev) {
-    btnVarPrev.addEventListener("click", () => {
+  if (btnVarUp) {
+    btnVarUp.addEventListener("click", () => {
       if (!state.filteredList || state.filteredList.length === 0) return;
       const currentIdx = state.filteredList.findIndex(item => item.id === state.activeVarId);
       if (currentIdx > 0) {
@@ -8151,8 +8071,8 @@ function initUI() {
     });
   }
 
-  if (btnVarNext) {
-    btnVarNext.addEventListener("click", () => {
+  if (btnVarDown) {
+    btnVarDown.addEventListener("click", () => {
       if (!state.filteredList || state.filteredList.length === 0) return;
       const currentIdx = state.filteredList.findIndex(item => item.id === state.activeVarId);
       if (currentIdx < state.filteredList.length - 1) {
@@ -8165,39 +8085,32 @@ function initUI() {
   selectVariable(state.activeVarId, true);
 }
 
-// スライダーUI（つまみ位置・カウンター・前へ/次へボタン）を同期
+// 選択中の現在位置カウンターおよび「上へ」「下へ」ボタンの活性状態を同期
 function syncSliderUI() {
-  const slider = document.getElementById("var-slider");
   const counter = document.getElementById("slider-counter");
-  const btnPrev = document.getElementById("btn-var-prev");
-  const btnNext = document.getElementById("btn-var-next");
-  if (!slider || !state.filteredList) return;
+  const btnUp = document.getElementById("btn-var-up");
+  const btnDown = document.getElementById("btn-var-down");
+  if (!state.filteredList) return;
 
   const total = state.filteredList.length;
   if (total === 0) {
-    slider.disabled = true;
-    if (btnPrev) btnPrev.disabled = true;
-    if (btnNext) btnNext.disabled = true;
+    if (btnUp) btnUp.disabled = true;
+    if (btnDown) btnDown.disabled = true;
     if (counter) counter.textContent = "0 / 0";
     return;
   }
 
-  slider.disabled = false;
-  slider.min = "1";
-  slider.max = String(total);
-
   const currentIdx = state.filteredList.findIndex(item => item.id === state.activeVarId);
   const val = currentIdx >= 0 ? currentIdx + 1 : 1;
-  slider.value = String(val);
 
   if (counter) {
-    counter.textContent = `${val} / ${total}`;
+    counter.textContent = `No. ${val} / ${total}`;
   }
-  if (btnPrev) {
-    btnPrev.disabled = (val <= 1);
+  if (btnUp) {
+    btnUp.disabled = (val <= 1);
   }
-  if (btnNext) {
-    btnNext.disabled = (val >= total);
+  if (btnDown) {
+    btnDown.disabled = (val >= total);
   }
 }
 
