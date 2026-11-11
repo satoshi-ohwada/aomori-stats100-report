@@ -322,24 +322,97 @@ function computeStats(effectiveObj) {
   };
 }
 
-// 5段階の分位数（Quantile）階級分割
-function computeQuantileBreaks(sortedEntries, k = 5) {
-  if (!sortedEntries || sortedEntries.length === 0) return [0, 0, 0, 0, 0, 0];
-  const vals = sortedEntries.map(e => e.val).sort((a, b) => a - b);
-  const n = vals.length;
-  const breaks = [vals[0]];
+// 人間にとって認知しやすいキリの良い数値（1, 2, 2.5, 5 × 10^n）にスナップ丸めする関数
+function roundToNiceNumber(val, localDiff) {
+  if (val === 0) return 0;
+  // 目安となる刻み幅（隣との差、または自身の約1/8〜1/3）
+  const targetStep = Math.max(Math.abs(localDiff) * 0.35, Math.abs(val) * 0.08);
+  const exp = Math.floor(Math.log10(targetStep));
+  const base = Math.pow(10, exp);
 
-  for (let i = 1; i < k; i++) {
-    const p = i / k;
-    const idx = (n - 1) * p;
-    const lower = Math.floor(idx);
-    const upper = Math.ceil(idx);
-    const weight = idx - lower;
-    const bVal = vals[lower] * (1 - weight) + vals[upper] * weight;
-    breaks.push(bVal);
+  // キリの良い刻み候補: 0.1, 0.2, 0.5, 1, 2, 2.5, 5, 10
+  const steps = [
+    base * 0.1,
+    base * 0.2,
+    base * 0.5,
+    base * 1.0,
+    base * 2.0,
+    base * 2.5,
+    base * 5.0,
+    base * 10.0
+  ];
+
+  let bestStep = base;
+  for (const s of steps) {
+    if (s <= targetStep * 1.8 && s >= targetStep * 0.4) {
+      bestStep = s;
+      break;
+    }
   }
-  breaks.push(vals[n - 1]);
 
+  let rounded = Math.round(val / bestStep) * bestStep;
+  const decimals = Math.max(0, -exp + 1);
+  return parseFloat(rounded.toFixed(decimals));
+}
+
+// 案A: スマート・キリ良し階級区分（Smart Snapped Breaks）
+// 分位数の「各階級に自治体が均等に散らばる」利点を保ちつつ、境界値を端数のない自然な丸い数値に自動スナップ
+function computeSmartBreaks(sortedEntries, k = 5) {
+  if (!sortedEntries || sortedEntries.length === 0) return [0, 0, 0, 0, 0, 0];
+  const vals = sortedEntries
+    .map(e => e.val)
+    .filter(v => typeof v === 'number' && !isNaN(v))
+    .sort((a, b) => a - b);
+  
+  const n = vals.length;
+  if (n === 0) return [0, 0, 0, 0, 0, 0];
+
+  const minVal = vals[0];
+  const maxVal = vals[n - 1];
+
+  if (minVal === maxVal) {
+    return Array(k + 1).fill(minVal);
+  }
+
+  // 1. 各分位点の原値を算出
+  const rawQ = [minVal];
+  for (let i = 1; i < k; i++) {
+    rawQ.push(computePercentile(vals, i / k));
+  }
+  rawQ.push(maxVal);
+
+  // 2. 中間の k-1 個の境界値をローカル間隔に基づきキリの良い数値にスナップ
+  const snapped = [];
+  for (let i = 1; i < k; i++) {
+    const val = rawQ[i];
+    const prev = rawQ[i - 1];
+    const next = rawQ[i + 1];
+    const localDiff = Math.min(val - prev, next - val);
+    let nice = roundToNiceNumber(val, localDiff);
+    snapped.push(nice);
+  }
+
+  // 3. 厳格な単調増加性を保証（重なりや逆転を防止）
+  for (let i = 0; i < snapped.length; i++) {
+    if (i === 0) {
+      if (snapped[i] <= minVal) {
+        snapped[i] = rawQ[1];
+      }
+    } else {
+      if (snapped[i] <= snapped[i - 1]) {
+        const step = Math.abs(rawQ[i + 1] - snapped[i - 1]) * 0.3;
+        snapped[i] = roundToNiceNumber(snapped[i - 1] + step, step);
+        if (snapped[i] <= snapped[i - 1]) {
+          snapped[i] = snapped[i - 1] + (maxVal - minVal) * 0.01;
+        }
+      }
+    }
+  }
+
+  // 4. 配列組み立て [min, q1_snap, q2_snap, q3_snap, q4_snap, max]
+  const breaks = [minVal, ...snapped, maxVal];
+
+  // 最終安全性チェック（微小増分で必ず狭義単調増加にする）
   for (let i = 1; i < breaks.length; i++) {
     if (breaks[i] <= breaks[i - 1]) {
       breaks[i] = breaks[i - 1] + 0.0001;
@@ -348,6 +421,9 @@ function computeQuantileBreaks(sortedEntries, k = 5) {
 
   return breaks;
 }
+
+// 互換性エイリアス
+const computeQuantileBreaks = computeSmartBreaks;
 
 // 値に対応する色の取得
 function getColorForValue(val, breaks, paletteKey) {
@@ -514,6 +590,21 @@ function updateLeafletMap() {
   updateLegendUI(breaks, effective.unit);
 }
 
+// 凡例用ラベルフォーマッタ（キリの良い自然な区分表記: 〜 N / A 〜 B / N 〜）
+function formatLegendLabel(breaks, i, totalClasses) {
+  const isUniform = breaks && breaks.length >= 2 && breaks[0] === breaks[breaks.length - 1];
+  if (isUniform) {
+    return `全域同一値: ${formatNum(breaks[0])}`;
+  }
+  if (i === 0) {
+    return `〜 ${formatNum(breaks[1])}`;
+  }
+  if (i === totalClasses - 1) {
+    return `${formatNum(breaks[i])} 〜`;
+  }
+  return `${formatNum(breaks[i])} 〜 ${formatNum(breaks[i + 1])}`;
+}
+
 function updateLegendUI(breaks, unit) {
   const legendEl = document.getElementById("leaflet-legend-box");
   if (!legendEl) return;
@@ -528,17 +619,15 @@ function updateLegendUI(breaks, unit) {
     html += `
       <div class="legend-row">
         <div class="legend-color-box" style="background:${colors[colors.length - 1]}; border-color:#334155;"></div>
-        <span>全域同一値: ${formatNum(breaks[0])}</span>
+        <span>${formatLegendLabel(breaks, 0, colors.length)}</span>
       </div>
     `;
   } else {
     for (let i = 0; i < colors.length; i++) {
-      const low = formatNum(breaks[i]);
-      const high = formatNum(breaks[i + 1]);
       html += `
         <div class="legend-row">
           <div class="legend-color-box" style="background:${colors[i]}; border-color:#334155;"></div>
-          <span>${low} 〜 ${high}</span>
+          <span>${formatLegendLabel(breaks, i, colors.length)}</span>
         </div>
       `;
     }
@@ -1235,7 +1324,7 @@ function openReportModal() {
     legendItems += `
       <div style="display:flex; align-items:center; gap:4px;">
         <span style="display:inline-block; width:12px; height:9px; background:${colors[i]}; border:1px solid #334155; border-radius:2px;"></span>
-        <span>${formatNum(breaks[i])}〜${formatNum(breaks[i + 1])}</span>
+        <span>${formatLegendLabel(breaks, i, colors.length)}</span>
       </div>
     `;
   }
