@@ -1020,23 +1020,84 @@ body {
 }
 
 .map-legend-control {
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.96);
   backdrop-filter: blur(6px);
   border: 1px solid #cbd5e1;
   border-radius: var(--radius-sm);
-  padding: 6px 10px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  padding: 8px 12px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.09);
   font-size: 0.7rem;
   line-height: 1.35;
   margin: 0 12px 0 0 !important;
   pointer-events: auto;
+  user-select: none;
+}
+
+.legend-header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 14px;
+  margin-bottom: 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .legend-title {
   font-weight: 700;
-  margin-bottom: 3px;
-  color: #334155;
-  font-size: 0.7rem;
+  color: #1e293b;
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.legend-box-title {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.legend-content-flex {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.legend-classes-col {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-width: 105px;
+}
+
+.legend-divider-v {
+  width: 1px;
+  align-self: stretch;
+  background: #e2e8f0;
+  margin: 0 2px;
+}
+
+.legend-boxplot-col {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.legend-boxplot-svg {
+  display: block;
+}
+
+.boxplot-dot {
+  transition: r 0.15s ease, fill 0.15s ease;
+  cursor: pointer;
+}
+
+.boxplot-dot:hover {
+  r: 4.5px !important;
+  fill: #2563eb !important;
+  fill-opacity: 1 !important;
+  stroke: #ffffff !important;
+  stroke-width: 1px !important;
 }
 
 .legend-row {
