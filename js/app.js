@@ -95,19 +95,41 @@ const state = {
   currentStats: null
 };
 
+// 狭小密集地域（鶴田町・板柳町・藤崎町・田舎館村）専用の引き出し線（Leader Line）設定
+// target: ポリゴン内の幾何学的重心（引き出し線の起点ピンポイント）
+// anchor: 周囲と干渉しない引き出し先座標（ラベル表示位置）
+const LEADER_LINE_CONFIG = {
+  "鶴田町": {
+    target: [140.4212, 40.7565], // 重心
+    anchor: [140.3550, 40.7750]  // 西（つがる市東部側余白）へ引き出し
+  },
+  "板柳町": {
+    target: [140.4811, 40.7156], // 重心
+    anchor: [140.5550, 40.7300]  // 東（青森市境・梵珠山麓側余白）へ引き出し
+  },
+  "藤崎町": {
+    target: [140.5166, 40.6752], // 重心
+    anchor: [140.4400, 40.6650]  // 西（岩木川右岸・弘前市北部側余白）へ引き出し
+  },
+  "田舎館村": {
+    target: [140.5417, 40.6421], // 重心
+    anchor: [140.6200, 40.6350]  // 東（黒石市境平野部余白）へ引き出し
+  }
+};
+
 // 青森県40市町村 ラベル表示用代表座標（経度, 緯度）
 // 役場位置ではなく、各自治体ポリゴンそのものの幾何学的重心（Centroid）を基準とし、
-// 周囲と重なる近接密集エリア（弘前周辺、八戸・三八、下北等）のみポリゴン内部で安全にオフセット微調整した最適座標
+// 狭小密集の4町村（鶴田町・板柳町・藤崎町・田舎館村）は引き出し線先アンカー座標へ配置
 const MUNI_LABEL_COORDS = {
   "青森市": [140.7542, 40.7701],      // 幾何学的重心
   "弘前市": [140.3844, 40.6051],      // 幾何学的重心
   "八戸市": [141.4812, 40.4741],      // 幾何学的重心
-  "黒石市": [140.7047, 40.6171],      // 幾何学的重心
+  "黒石市": [140.7100, 40.6171],      // 幾何学的重心（市街寄り）
   "五所川原市": [140.4900, 40.8550],  // 本庁部幾何重心
   "十和田市": [141.0570, 40.5668],    // 幾何学的重心
   "三沢市": [141.3812, 40.7463],      // 幾何学的重心
   "むつ市": [141.0800, 41.2750],      // 陸奥湾入を考慮したポリゴン内重心近く
-  "つがる市": [140.3496, 40.8698],    // 幾何学的重心
+  "つがる市": [140.3300, 40.8750],    // 幾何学的重心
   "平川市": [140.7005, 40.5183],      // 幾何学的重心
   "平内町": [140.9562, 40.9077],      // 幾何学的重心
   "今別町": [140.5163, 41.1603],      // 幾何学的重心
@@ -116,11 +138,11 @@ const MUNI_LABEL_COORDS = {
   "鰺ヶ沢町": [140.1867, 40.6514],    // 幾何学的重心
   "深浦町": [140.0183, 40.6049],      // 幾何学的重心
   "西目屋村": [140.2370, 40.5106],    // 幾何学的重心
-  "藤崎町": [140.5050, 40.6850],      // 重心(140.5166, 40.6752)から田舎館村との重複を微調整
+  "鶴田町": [140.3550, 40.7750],      // 【引き出し線】西側へ引き出し配置
+  "板柳町": [140.5550, 40.7300],      // 【引き出し線】東側へ引き出し配置
+  "藤崎町": [140.4400, 40.6650],      // 【引き出し線】西側へ引き出し配置
+  "田舎館村": [140.6200, 40.6350],    // 【引き出し線】東側へ引き出し配置
   "大鰐町": [140.5514, 40.4841],      // 幾何学的重心
-  "田舎館村": [140.5550, 40.6320],    // 重心(140.5417, 40.6421)から藤崎町との重複を微調整
-  "板柳町": [140.4650, 40.7200],      // 重心(140.4811, 40.7156)から藤崎町との重複を微調整
-  "鶴田町": [140.4100, 40.7600],      // 重心(140.4212, 40.7565)から板柳町との重複を微調整
   "中泊町": [140.4507, 41.0013],      // 主要部幾何重心（飛び地間重心が五所川原市に出るため）
   "野辺地町": [141.1350, 40.8650],    // 幾何重心が野辺地湾(海)に出るため陸地重心近く
   "七戸町": [141.0787, 40.7316],      // 幾何学的重心
@@ -666,7 +688,7 @@ function toggleValues(show) {
   renderMapLabels();
 }
 
-// 地図上ラベルの描画（市町村名・数値を別々または両方表示）
+// 地図上ラベルの描画（市町村名・数値を別々または両方表示、狭小町村は引き出し線付き）
 function renderMapLabels() {
   if (!state.leafletMap) return;
 
@@ -683,6 +705,37 @@ function renderMapLabels() {
   const effective = getEffectiveData(currentVar);
 
   const markers = [];
+
+  // 1. 狭小密集地域（鶴田町・板柳町・藤崎町・田舎館村）の引き出し線描画
+  Object.keys(LEADER_LINE_CONFIG).forEach(muniName => {
+    const cfg = LEADER_LINE_CONFIG[muniName];
+
+    // 引き出し線（上品な破線）
+    const line = L.polyline([
+      [cfg.target[1], cfg.target[0]],
+      [cfg.anchor[1], cfg.anchor[0]]
+    ], {
+      color: "#334155",
+      weight: 1.2,
+      opacity: 0.85,
+      dashArray: "3, 2",
+      interactive: false
+    });
+    markers.push(line);
+
+    // 重心地点のピンポイント丸印
+    const dot = L.circleMarker([cfg.target[1], cfg.target[0]], {
+      radius: 2.2,
+      color: "#0f172a",
+      weight: 1.0,
+      fillColor: "#ffffff",
+      fillOpacity: 1.0,
+      interactive: false
+    });
+    markers.push(dot);
+  });
+
+  // 2. 各市町村ラベルマーカーの描画
   Object.keys(MUNI_LABEL_COORDS).forEach(muniName => {
     const coords = MUNI_LABEL_COORDS[muniName];
     const val = effective.data[muniName];
@@ -1217,9 +1270,23 @@ function renderReportSvgMap(varItem, breaks, paletteKey) {
 
   const outerSvg = outerPathD ? `<path d="${outerPathD}" fill="none" stroke="#0f172a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />` : "";
 
-  // 3. 市町村名・数値ラベル（チェックボックスON時、個別/両方対応）
+  // 3. 引き出し線 ＆ 市町村名・数値ラベル（チェックボックスON時、個別/両方対応）
   let labelsSvg = "";
   if (state.showMuniNames || state.showValues) {
+    // 3-1. 狭小密集地域（鶴田町・板柳町・藤崎町・田舎館村）の引き出し線描画
+    let leaderLinesSvg = "";
+    Object.keys(LEADER_LINE_CONFIG).forEach(muniName => {
+      const cfg = LEADER_LINE_CONFIG[muniName];
+      const pTarget = project(cfg.target[0], cfg.target[1]);
+      const pAnchor = project(cfg.anchor[0], cfg.anchor[1]);
+      leaderLinesSvg += `
+        <line x1="${pTarget[0].toFixed(1)}" y1="${pTarget[1].toFixed(1)}" x2="${pAnchor[0].toFixed(1)}" y2="${pAnchor[1].toFixed(1)}" stroke="#334155" stroke-width="0.8" stroke-dasharray="2.5, 1.5" stroke-opacity="0.85" pointer-events="none"/>
+        <circle cx="${pTarget[0].toFixed(1)}" cy="${pTarget[1].toFixed(1)}" r="1.5" fill="#ffffff" stroke="#0f172a" stroke-width="0.7" pointer-events="none"/>
+      `;
+    });
+    labelsSvg += leaderLinesSvg;
+
+    // 3-2. 各市町村ラベル
     Object.keys(MUNI_LABEL_COORDS).forEach(muniName => {
       const coord = MUNI_LABEL_COORDS[muniName];
       const pt = project(coord[0], coord[1]);
