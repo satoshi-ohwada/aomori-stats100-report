@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="vendor/css/leaflet.css">
   
   <!-- App Styles -->
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=20261111_step2">
 </head>
 <body>
 
@@ -43,10 +43,16 @@
     <!-- Sidebar / Indicator Selection -->
     <aside id="app-sidebar" class="sidebar">
       
+      <!-- Guide Bar: 5ステップ案内 -->
+      <div class="sidebar-guide-bar">
+        <i class="fa-solid fa-layer-group"></i>
+        <span>5ステップでかんたん分析＆レポート作成</span>
+      </div>
+
       <!-- Section 1: Indicator Selection -->
       <div class="sidebar-section">
         <div class="step-header">
-          <span class="step-badge">1</span>
+          <span class="step-badge">STEP 1</span>
           <div class="step-info">
             <span class="step-title">統計データを選ぶ</span>
             <span class="step-desc">全105指標から検索・選択</span>
@@ -102,7 +108,7 @@
       <!-- Section 2: Per-Capita Population Transform (人口1,000人あたり) -->
       <div class="sidebar-section">
         <div class="step-header">
-          <span class="step-badge">2</span>
+          <span class="step-badge">STEP 2</span>
           <div class="step-info">
             <span class="step-title">人口補正（率化）</span>
             <span class="step-desc">自治体の人口規模差を平準化</span>
@@ -126,7 +132,7 @@
       <!-- Section 3: Color Palette -->
       <div class="sidebar-section">
         <div class="step-header">
-          <span class="step-badge">3</span>
+          <span class="step-badge">STEP 3</span>
           <div class="step-info">
             <span class="step-title">塗り分けカラー</span>
             <span class="step-desc">地図とレポートの配色テーマ</span>
@@ -183,7 +189,7 @@
       <!-- Section 4: Map Label Display Options -->
       <div class="sidebar-section">
         <div class="step-header">
-          <span class="step-badge">4</span>
+          <span class="step-badge">STEP 4</span>
           <div class="step-info">
             <span class="step-title">地図ラベル表示</span>
             <span class="step-desc">市町村名・数値を地図に表示</span>
@@ -212,7 +218,7 @@
       <!-- Section 5: Print Action Guide -->
       <div class="sidebar-section step-final">
         <div class="step-header">
-          <span class="step-badge step-badge-goal">5</span>
+          <span class="step-badge step-badge-goal">STEP 5</span>
           <div class="step-info">
             <span class="step-title">A4レポート印刷</span>
             <span class="step-desc">印刷・PDF保存・画像出力</span>
@@ -488,7 +494,7 @@
   <!-- App Data & Scripts -->
   <script src="js/geojson.js"></script>
   <script src="js/data.js"></script>
-  <script src="js/app.js"></script>
+  <script src="js/app.js?v=20261111_step2"></script>
 
 </body>
 </html>
