@@ -1255,6 +1255,14 @@ body {
   border-radius: 2px;
   border: 1px solid rgba(0,0,0,0.15);
   flex-shrink: 0;
+  transition: border-radius 0.2s ease, width 0.2s ease, height 0.2s ease;
+}
+
+.map-legend-control.bubble-mode .legend-color-box,
+.report-legend-box.bubble-mode .legend-color-box {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
 }
 
 /* ==========================================================================
@@ -2005,25 +2013,25 @@ body {
         <div class="step-header">
           <span class="step-badge">STEP 4</span>
           <div class="step-info">
-            <span class="step-title">地図ラベル表示</span>
-            <span class="step-desc">市町村名・数値を地図に表示</span>
+            <span class="step-title" id="step4-title">地図ラベル表示</span>
+            <span class="step-desc" id="step4-desc">市町村名・数値を地図に表示</span>
           </div>
         </div>
         <div class="sidebar-toggle-group">
-          <label id="sidebar-toggle-names" class="sidebar-toggle-card" title="市町村名を地図上に直接表示/非表示">
+          <label id="sidebar-toggle-names" class="sidebar-toggle-card" title="市町村名を直接表示/非表示">
             <input type="checkbox" id="chk-show-names-sidebar">
             <span class="custom-chk"><i class="fa-solid fa-check"></i></span>
             <div class="toggle-desc">
-              <span class="desc-title">市町村名を表示</span>
-              <span class="desc-sub">全40自治体の名称を地図上に表示</span>
+              <span class="desc-title" id="toggle-names-title">市町村名を表示</span>
+              <span class="desc-sub" id="toggle-names-sub">全40自治体の名称を地図上に表示</span>
             </div>
           </label>
-          <label id="sidebar-toggle-values" class="sidebar-toggle-card" title="数値を地図上に直接表示/非表示" style="margin-top:6px;">
+          <label id="sidebar-toggle-values" class="sidebar-toggle-card" title="数値を直接表示/非表示" style="margin-top:6px;">
             <input type="checkbox" id="chk-show-values-sidebar">
             <span class="custom-chk"><i class="fa-solid fa-check"></i></span>
             <div class="toggle-desc">
-              <span class="desc-title">数値を表示</span>
-              <span class="desc-sub">現在の統計数値を地図上に表示</span>
+              <span class="desc-title" id="toggle-values-title">数値を表示</span>
+              <span class="desc-sub" id="toggle-values-sub">現在の統計数値を地図上に表示</span>
             </div>
           </label>
         </div>
@@ -7747,9 +7755,13 @@ const state = {
   outerBorderLayer: null,
   bubbleLayerGroup: null,  // バブル表示用レイヤーグループ
   legendControl: null,
-  showMuniNames: false,    // 市町村名ラベル表示フラグ
-  showValues: false,       // 数値ラベル表示フラグ
-  labelMarkersLayer: null, // 市町村名・数値マーカー用レイヤーグループ
+  showMuniNames: false,       // 現在の市町村名ラベル表示フラグ
+  showValues: false,          // 現在の数値ラベル表示フラグ
+  choroplethShowNames: false, // エリア塗り分け時の市町村名表示フラグ
+  choroplethShowValues: false,// エリア塗り分け時の数値表示フラグ
+  bubbleShowNames: true,      // バブル表示時の市町村名表示フラグ（デフォルトON）
+  bubbleShowValues: true,     // バブル表示時の数値表示フラグ（デフォルトON）
+  labelMarkersLayer: null,    // 市町村名・数値マーカー用レイヤーグループ
   currentBreaks: [],
   currentStats: null
 };
@@ -8546,6 +8558,29 @@ function renderBubbleLayer(currentVar, breaks, stats) {
 
     const formattedVal = (node.val !== null && !isNaN(node.val)) ? formatNum(node.val) : "-";
 
+    // バブル内のテキスト生成（ステップ4の選択に応じて市町村名・数値を表示/非表示）
+    let innerTextHtml = "";
+    if (state.showMuniNames && state.showValues) {
+      // 両方表示（上段：自治体略称、下段：数値）
+      innerTextHtml = `
+        <span class="bubble-muni-name" style="font-size: ${nameFontSize.toFixed(1)}px;">${shortName}</span>
+        <span class="bubble-muni-val" style="font-size: ${valFontSize.toFixed(1)}px;">${formattedVal}</span>
+      `;
+    } else if (state.showMuniNames) {
+      // 自治体名のみ表示（中央配置、やや大きめのフォント）
+      const singleNameSize = Math.max(8.2, Math.min(12.5, (node.r * 1.6) / Math.max(1.8, charLen)));
+      innerTextHtml = `
+        <span class="bubble-muni-name" style="font-size: ${singleNameSize.toFixed(1)}px; line-height: 1.1;">${shortName}</span>
+      `;
+    } else if (state.showValues) {
+      // 数値のみ表示（中央配置、やや大きめのフォント）
+      const singleValSize = Math.max(7.8, Math.min(12.0, node.r * 0.68));
+      innerTextHtml = `
+        <span class="bubble-muni-val" style="font-size: ${singleValSize.toFixed(1)}px; line-height: 1.1; margin-top: 0;">${formattedVal}</span>
+      `;
+    }
+    // 両方OFFの場合は innerTextHtml = "" となり、純粋な5段階サイズのカラーバブル（円）のみを描画
+
     const bubbleHtml = `
       <div class="bubble-circle" style="
         width: ${node.r * 2}px;
@@ -8554,8 +8589,7 @@ function renderBubbleLayer(currentVar, breaks, stats) {
         border: 1.5px solid ${strokeBorder};
         color: ${textColor};
       ">
-        <span class="bubble-muni-name" style="font-size: ${nameFontSize.toFixed(1)}px;">${shortName}</span>
-        <span class="bubble-muni-val" style="font-size: ${valFontSize.toFixed(1)}px;">${formattedVal}</span>
+        ${innerTextHtml}
       </div>
     `;
 
@@ -8586,28 +8620,102 @@ function renderBubbleLayer(currentVar, breaks, stats) {
   });
 }
 
-// 市町村名ラベルの表示切替
+// ステップ4のUI表示更新（作図形式に応じて見出し・説明文・チェックボックス状態を切り替え）
+function updateStep4UI() {
+  const isBubble = (state.mapStyle === "bubble");
+
+  const titleEl = document.getElementById("step4-title");
+  const descEl = document.getElementById("step4-desc");
+  const namesTitleEl = document.getElementById("toggle-names-title");
+  const namesSubEl = document.getElementById("toggle-names-sub");
+  const valuesTitleEl = document.getElementById("toggle-values-title");
+  const valuesSubEl = document.getElementById("toggle-values-sub");
+  const cardNames = document.getElementById("sidebar-toggle-names");
+  const cardValues = document.getElementById("sidebar-toggle-values");
+  const chkNames = document.getElementById("chk-show-names-sidebar");
+  const chkValues = document.getElementById("chk-show-values-sidebar");
+
+  if (isBubble) {
+    if (titleEl) titleEl.textContent = "バブル内テキスト表示";
+    if (descEl) descEl.textContent = "バブル内の市町村名・数値を調整";
+    if (namesTitleEl) namesTitleEl.textContent = "市町村名を表示";
+    if (namesSubEl) namesSubEl.textContent = "バブル内に自治体名（略称）を表示";
+    if (valuesTitleEl) valuesTitleEl.textContent = "数値を表示";
+    if (valuesSubEl) valuesSubEl.textContent = "バブル内に統計数値を表示";
+    if (cardNames) cardNames.title = "バブル内に市町村名（略称）を表示/非表示";
+    if (cardValues) cardValues.title = "バブル内に統計数値を表示/非表示";
+  } else {
+    if (titleEl) titleEl.textContent = "地図ラベル表示";
+    if (descEl) descEl.textContent = "市町村名・数値を地図に表示";
+    if (namesTitleEl) namesTitleEl.textContent = "市町村名を表示";
+    if (namesSubEl) namesSubEl.textContent = "全40自治体の名称を地図上に表示";
+    if (valuesTitleEl) valuesTitleEl.textContent = "数値を表示";
+    if (valuesSubEl) valuesSubEl.textContent = "現在の統計数値を地図上に表示";
+    if (cardNames) cardNames.title = "市町村名を地図上に直接表示/非表示";
+    if (cardValues) cardValues.title = "数値を地図上に直接表示/非表示";
+  }
+
+  // 現在の state.showMuniNames / state.showValues に合わせてチェックボックスとカードの見た目を同期
+  if (chkNames) chkNames.checked = state.showMuniNames;
+  if (cardNames) cardNames.classList.toggle("active", state.showMuniNames);
+  if (chkValues) chkValues.checked = state.showValues;
+  if (cardValues) cardValues.classList.toggle("active", state.showValues);
+}
+
+// 市町村名ラベル（またはバブル内自治体名）の表示切替
 function toggleMuniNames(show) {
   state.showMuniNames = show;
+  if (state.mapStyle === "bubble") {
+    state.bubbleShowNames = show;
+  } else {
+    state.choroplethShowNames = show;
+  }
+
   const chkSide = document.getElementById("chk-show-names-sidebar");
   const cardSide = document.getElementById("sidebar-toggle-names");
 
   if (chkSide) chkSide.checked = show;
   if (cardSide) cardSide.classList.toggle("active", show);
 
-  renderMapLabels();
+  if (state.mapStyle === "bubble") {
+    const currentVar = STATS_DATA.find(v => v.id === state.activeVarId);
+    if (currentVar) {
+      const effective = getEffectiveData(currentVar);
+      const breaks = state.currentBreaks && state.currentBreaks.length ? state.currentBreaks : calcJenksBreaks(effective.data, 5);
+      const stats = state.currentStats || calcBasicStats(effective.data);
+      renderBubbleLayer(currentVar, breaks, stats);
+    }
+  } else {
+    renderMapLabels();
+  }
 }
 
-// 数値ラベルの表示切替
+// 数値ラベル（またはバブル内数値）の表示切替
 function toggleValues(show) {
   state.showValues = show;
+  if (state.mapStyle === "bubble") {
+    state.bubbleShowValues = show;
+  } else {
+    state.choroplethShowValues = show;
+  }
+
   const chkSide = document.getElementById("chk-show-values-sidebar");
   const cardSide = document.getElementById("sidebar-toggle-values");
 
   if (chkSide) chkSide.checked = show;
   if (cardSide) cardSide.classList.toggle("active", show);
 
-  renderMapLabels();
+  if (state.mapStyle === "bubble") {
+    const currentVar = STATS_DATA.find(v => v.id === state.activeVarId);
+    if (currentVar) {
+      const effective = getEffectiveData(currentVar);
+      const breaks = state.currentBreaks && state.currentBreaks.length ? state.currentBreaks : calcJenksBreaks(effective.data, 5);
+      const stats = state.currentStats || calcBasicStats(effective.data);
+      renderBubbleLayer(currentVar, breaks, stats);
+    }
+  } else {
+    renderMapLabels();
+  }
 }
 
 // 地図上ラベルの描画（市町村名・数値を別々または両方表示、狭小町村は引き出し線付き）
@@ -8848,6 +8956,8 @@ function updateLegendUI(breaks, unit, stats = null) {
   const legendEl = document.getElementById("leaflet-legend-box");
   if (!legendEl) return;
 
+  legendEl.classList.toggle("bubble-mode", state.mapStyle === "bubble");
+
   const currentStats = stats || state.currentStats;
   const colors = PALETTES[state.activePalette].colors;
   const unitStr = unit ? ` (${unit})` : "";
@@ -8949,10 +9059,32 @@ function initUI() {
   const btnStyleBubble = document.getElementById("btn-style-bubble");
 
   function setMapStyle(style) {
+    if (state.mapStyle === style) return;
+
+    // 以前のスタイルのラベル選択状態を保存
+    if (state.mapStyle === "bubble") {
+      state.bubbleShowNames = state.showMuniNames;
+      state.bubbleShowValues = state.showValues;
+    } else {
+      state.choroplethShowNames = state.showMuniNames;
+      state.choroplethShowValues = state.showValues;
+    }
+
     state.mapStyle = style;
+
+    // 新しいスタイルのラベル選択状態を復元（バブル初回はデフォルトON）
+    if (style === "bubble") {
+      state.showMuniNames = (state.bubbleShowNames !== undefined) ? state.bubbleShowNames : true;
+      state.showValues = (state.bubbleShowValues !== undefined) ? state.bubbleShowValues : true;
+    } else {
+      state.showMuniNames = (state.choroplethShowNames !== undefined) ? state.choroplethShowNames : false;
+      state.showValues = (state.choroplethShowValues !== undefined) ? state.choroplethShowValues : false;
+    }
+
     if (btnStyleChoropleth) btnStyleChoropleth.classList.toggle("active", style === "choropleth");
     if (btnStyleBubble) btnStyleBubble.classList.toggle("active", style === "bubble");
 
+    updateStep4UI();
     updateLeafletMap();
     updateInfoPanels();
   }
@@ -9106,6 +9238,7 @@ function initUI() {
     });
   }
 
+  updateStep4UI();
   filterVariables();
   selectVariable(state.activeVarId, true);
 }
@@ -9509,11 +9642,28 @@ function renderReportSvgMap(varItem, breaks, paletteKey) {
       const nameFontSize = Math.max(5.0, Math.min(7.2, (node.r * 1.3) / Math.max(1.8, shortName.length)));
       const valFontSize = Math.max(4.2, Math.min(5.8, node.r * 0.45));
 
+      let textSvg = "";
+      if (state.showMuniNames && state.showValues) {
+        textSvg = `
+          <text x="0" y="${(-node.r * 0.15).toFixed(1)}" text-anchor="middle" font-size="${nameFontSize.toFixed(1)}" font-weight="700" fill="${textColor}">${shortName}</text>
+          <text x="0" y="${(node.r * 0.55).toFixed(1)}" text-anchor="middle" font-size="${valFontSize.toFixed(1)}" font-weight="600" fill="${textColor}">${valStr}</text>
+        `;
+      } else if (state.showMuniNames) {
+        const singleNameSize = Math.max(5.8, Math.min(8.5, (node.r * 1.5) / Math.max(1.8, shortName.length)));
+        textSvg = `
+          <text x="0" y="0" text-anchor="middle" dominant-baseline="central" font-size="${singleNameSize.toFixed(1)}" font-weight="700" fill="${textColor}">${shortName}</text>
+        `;
+      } else if (state.showValues) {
+        const singleValSize = Math.max(5.2, Math.min(8.0, node.r * 0.65));
+        textSvg = `
+          <text x="0" y="0" text-anchor="middle" dominant-baseline="central" font-size="${singleValSize.toFixed(1)}" font-weight="600" fill="${textColor}">${valStr}</text>
+        `;
+      }
+
       bubblesSvg += `
         <g transform="translate(${node.x.toFixed(1)}, ${node.y.toFixed(1)})" pointer-events="none">
           <circle cx="0" cy="0" r="${node.r.toFixed(1)}" fill="${fillColor}" stroke="${strokeBorder}" stroke-width="1.0" />
-          <text x="0" y="${(-node.r * 0.15).toFixed(1)}" text-anchor="middle" font-size="${nameFontSize.toFixed(1)}" font-weight="700" fill="${textColor}">${shortName}</text>
-          <text x="0" y="${(node.r * 0.55).toFixed(1)}" text-anchor="middle" font-size="${valFontSize.toFixed(1)}" font-weight="600" fill="${textColor}">${valStr}</text>
+          ${textSvg}
         </g>
       `;
     });
@@ -9929,12 +10079,13 @@ function openReportModal() {
 
   const repLegEl = document.getElementById("rep-legend-items");
   if (repLegEl) {
+    const isBubble = (state.mapStyle === "bubble");
     const colors = PALETTES[state.activePalette].colors;
     let legendItems = "";
     for (let i = 0; i < colors.length; i++) {
       legendItems += `
         <div style="display:flex; align-items:center; gap:4px;">
-          <span style="display:inline-block; width:12px; height:9px; background:${colors[i]}; border:1px solid #334155; border-radius:2px;"></span>
+          <span style="display:inline-block; width:${isBubble ? '10px' : '12px'}; height:${isBubble ? '10px' : '9px'}; background:${colors[i]}; border:1px solid #334155; border-radius:${isBubble ? '50%' : '2px'};"></span>
           <span>${formatLegendLabel(breaks, i, colors.length)}</span>
         </div>
       `;

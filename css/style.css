@@ -1239,6 +1239,14 @@ body {
   border-radius: 2px;
   border: 1px solid rgba(0,0,0,0.15);
   flex-shrink: 0;
+  transition: border-radius 0.2s ease, width 0.2s ease, height 0.2s ease;
+}
+
+.map-legend-control.bubble-mode .legend-color-box,
+.report-legend-box.bubble-mode .legend-color-box {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
 }
 
 /* ==========================================================================
