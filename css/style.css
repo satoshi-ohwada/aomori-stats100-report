@@ -436,6 +436,17 @@ body {
   color: var(--primary);
 }
 
+.rate-indicator-badge {
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: #2563eb;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  padding: 0.5px 4px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
 /* Selected Indicator Card */
 .selected-info-card {
   background: #f8fafc;
@@ -498,10 +509,35 @@ body {
   box-shadow: 0 1px 3px rgba(37, 99, 235, 0.3);
 }
 
+.per-capita-btn:disabled,
+.per-capita-btn.disabled {
+  opacity: 0.45;
+  background: #f1f5f9 !important;
+  color: #94a3b8 !important;
+  border-color: #e2e8f0 !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+  pointer-events: none;
+}
+
 .per-capita-note {
   font-size: 0.68rem;
   color: var(--text-muted);
   margin-top: 6px;
+  line-height: 1.35;
+  transition: all 0.2s ease;
+}
+
+.per-capita-note.rate-locked {
+  color: #1d4ed8;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  padding: 5px 8px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
   line-height: 1.35;
 }
 

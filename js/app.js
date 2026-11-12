@@ -163,11 +163,23 @@ const MUNI_LABEL_COORDS = {
   "新郷村": [141.1076, 40.4473]       // 幾何学的重心
 };
 
+// 指標がすでに単位あたり（率・比率・人口当たり・面積当たり・指数等）に変換されているか判定
+function isAlreadyPerCapitaOrRate(varItem) {
+  if (!varItem) return false;
+  const u = varItem.unit || "";
+  const n = varItem.name || "";
+  if (u === "%" || u === "‰" || u === "人口千人対" || u === "人/k㎡") return true;
+  if (/率|割合|当たり|あたり|対|指数|密度/.test(n)) return true;
+  if (/率|割合|当たり|あたり|対|指数|密度/.test(u)) return true;
+  return false;
+}
+
 // 実効データの取得（実測値 or 人口1,000人あたり）
 function getEffectiveData(varItem) {
   if (!varItem) return { data: {}, unit: "", isPerCapita: false };
 
-  if (!state.isPerCapita) {
+  // 比率・単位あたり指標の場合は二重補正を防ぐため常に原数値（実測値）
+  if (!state.isPerCapita || isAlreadyPerCapitaOrRate(varItem)) {
     return {
       data: varItem.data,
       unit: varItem.unit || "",
@@ -1007,6 +1019,10 @@ function initUI() {
   const btnMode1000 = document.getElementById("btn-mode-1000");
 
   function setPerCapitaMode(isPerCapita) {
+    const currentVar = STATS_DATA.find(v => v.id === state.activeVarId);
+    if (isPerCapita && isAlreadyPerCapitaOrRate(currentVar)) {
+      return; // 単位あたり・比率指標は人口補正不可
+    }
     state.isPerCapita = isPerCapita;
     btnModeRaw.classList.toggle("active", !isPerCapita);
     btnMode1000.classList.toggle("active", isPerCapita);
@@ -1168,6 +1184,41 @@ function initUI() {
   selectVariable(state.activeVarId, true);
 }
 
+// ステップ2の人口補正UI（ボタン活性状態・注意メッセージ）の同期制御
+function syncPerCapitaUI(varItem) {
+  const btnModeRaw = document.getElementById("btn-mode-raw");
+  const btnMode1000 = document.getElementById("btn-mode-1000");
+  const noteEl = document.querySelector(".per-capita-note");
+  if (!btnModeRaw || !btnMode1000) return;
+
+  const isRate = isAlreadyPerCapitaOrRate(varItem);
+
+  if (isRate) {
+    // 比率/単位あたり指標の場合：強制的に実測値モードにし、人口1,000人あたりボタンを無効化
+    state.isPerCapita = false;
+    btnModeRaw.classList.add("active");
+    btnMode1000.classList.remove("active");
+    btnMode1000.disabled = true;
+    btnMode1000.classList.add("disabled");
+    btnMode1000.title = "この指標はすでに単位あたり（比率・率・指数等）のため、人口補正はできません";
+    if (noteEl) {
+      noteEl.classList.add("rate-locked");
+      noteEl.innerHTML = `<i class="fa-solid fa-circle-info"></i> ※この指標はすでに単位あたり（比率）データのため、人口補正は不要です`;
+    }
+  } else {
+    // 通常実数指標の場合：活性化
+    btnMode1000.disabled = false;
+    btnMode1000.classList.remove("disabled");
+    btnMode1000.title = "令和7年国勢調査人口で割って1,000人あたりに変換します";
+    btnModeRaw.classList.toggle("active", !state.isPerCapita);
+    btnMode1000.classList.toggle("active", state.isPerCapita);
+    if (noteEl) {
+      noteEl.classList.remove("rate-locked");
+      noteEl.innerHTML = `※令和7年(2025年)国勢調査人口を用いて自治体の人口規模差を補正します`;
+    }
+  }
+}
+
 // 選択中の現在位置カウンターおよび「上へ」「下へ」ボタンの活性状態を同期
 function syncSliderUI() {
   const counter = document.getElementById("slider-counter");
@@ -1219,15 +1270,21 @@ function filterVariables() {
     return;
   }
 
-  listContainer.innerHTML = state.filteredList.map(item => `
+  listContainer.innerHTML = state.filteredList.map(item => {
+    const isRate = isAlreadyPerCapitaOrRate(item);
+    return `
     <div class="variable-item ${item.id === state.activeVarId ? 'selected' : ''}" data-id="${item.id}">
       <div style="display:flex; align-items:center; overflow:hidden;">
         <span class="var-badge">No.${item.num}</span>
         <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.name}</span>
       </div>
-      <span style="font-size:0.7rem; color:#94a3b8; margin-left:6px; flex-shrink:0;">${item.unit || ''}</span>
+      <div style="display:flex; align-items:center; gap:4px; margin-left:6px; flex-shrink:0;">
+        ${isRate ? '<span class="rate-indicator-badge" title="すでに単位あたり・比率の指標です">比率</span>' : ''}
+        <span style="font-size:0.7rem; color:#94a3b8;">${item.unit || ''}</span>
+      </div>
     </div>
-  `).join("");
+  `;
+  }).join("");
 
   listContainer.querySelectorAll(".variable-item").forEach(el => {
     el.addEventListener("click", () => {
@@ -1256,6 +1313,8 @@ function selectVariable(varId, scrollIntoView = true) {
     }
   });
 
+  const currentVar = STATS_DATA.find(v => v.id === varId);
+  syncPerCapitaUI(currentVar);
   syncSliderUI();
   updateLeafletMap();
   updateInfoPanels();
