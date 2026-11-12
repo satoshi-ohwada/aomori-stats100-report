@@ -1,5 +1,5 @@
 #!/bin/bash
-# 青森県 市町村データ100 かんたんマップ＆レポート 起動スクリプト
+# 青森県統計年鑑　市町村データ100 起動スクリプト
 PORT=8080
 echo "Starting Aomori Stats 100 Report Tool on http://localhost:$PORT ..."
 
