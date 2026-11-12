@@ -1274,7 +1274,7 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-width: 86px;
+  min-width: 104px;
 }
 
 .legend-divider-v {
@@ -1313,6 +1313,20 @@ body {
   gap: 5px;
   margin-bottom: 1.5px;
   font-size: 0.67rem;
+}
+
+.legend-label-text {
+  white-space: nowrap;
+}
+
+.legend-count {
+  margin-left: auto;
+  padding-left: 6px;
+  font-size: 0.62rem;
+  font-weight: 500;
+  color: #94a3b8;
+  white-space: nowrap;
+  letter-spacing: -0.01em;
 }
 
 .legend-color-box {
@@ -8970,6 +8984,34 @@ function renderMapLabels() {
   state.labelMarkersLayer = L.layerGroup(markers).addTo(state.leafletMap);
 }
 
+// 各階級に含まれる自治体数を集計する共通ヘルパー関数
+function computeClassCounts(effectiveData, breaks, numClasses) {
+  const counts = new Array(numClasses).fill(0);
+  let noData = 0;
+  if (!effectiveData) return { counts, noData };
+
+  const isUniform = breaks && breaks.length >= 2 && breaks[0] === breaks[breaks.length - 1];
+
+  for (const [muni, val] of Object.entries(effectiveData)) {
+    if (val === null || val === undefined || isNaN(val)) {
+      noData++;
+      continue;
+    }
+    if (isUniform) {
+      counts[numClasses - 1]++;
+      continue;
+    }
+    for (let i = 0; i < numClasses; i++) {
+      if (val <= breaks[i + 1] || i === numClasses - 1) {
+        counts[i]++;
+        break;
+      }
+    }
+  }
+
+  return { counts, noData };
+}
+
 // 凡例用ラベルフォーマッタ（キリの良い自然な区分表記: 〜 N / A 〜 B / N 〜）
 function formatLegendLabel(breaks, i, totalClasses) {
   const isUniform = breaks && breaks.length >= 2 && breaks[0] === breaks[breaks.length - 1];
@@ -9121,6 +9163,11 @@ function updateLegendUI(breaks, unit, stats = null) {
   const colors = PALETTES[state.activePalette].colors;
   const unitStr = unit ? ` (${unit})` : "";
 
+  // 各階級に含まれる自治体数の集計
+  const currentVar = STATS_DATA.find(v => v.id === state.activeVarId);
+  const effective = currentVar ? getEffectiveData(currentVar) : null;
+  const classCountsInfo = effective ? computeClassCounts(effective.data, breaks, colors.length) : { counts: new Array(colors.length).fill(0), noData: 0 };
+
   // 凡例タイトルの動的設定（通常塗り分け / バブル段階 / バブル無段階）
   let legendTitleText = `階級凡例${unitStr}`;
   if (state.mapStyle === "bubble") {
@@ -9134,10 +9181,12 @@ function updateLegendUI(breaks, unit, stats = null) {
   const isUniform = breaks && breaks.length >= 2 && breaks[0] === breaks[breaks.length - 1];
 
   if (isUniform) {
+    const totalCount = classCountsInfo.counts[colors.length - 1] || currentStats.count || 40;
     classesHtml += `
       <div class="legend-row">
         <div class="legend-color-box" style="background:${colors[colors.length - 1]}; border-color:#334155;"></div>
-        <span>${formatLegendLabel(breaks, 0, colors.length)}</span>
+        <span class="legend-label-text">${formatLegendLabel(breaks, 0, colors.length)}</span>
+        <span class="legend-count">(${totalCount})</span>
       </div>
     `;
   } else {
@@ -9150,16 +9199,19 @@ function updateLegendUI(breaks, unit, stats = null) {
       classesHtml += `
         <div class="legend-row">
           <div class="legend-color-box" style="background:${colors[i]}; border-color:#334155; ${boxCustomStyle}"></div>
-          <span>${formatLegendLabel(breaks, i, colors.length)}</span>
+          <span class="legend-label-text">${formatLegendLabel(breaks, i, colors.length)}</span>
+          <span class="legend-count">(${classCountsInfo.counts[i]})</span>
         </div>
       `;
     }
   }
 
+  const noDataLabel = classCountsInfo.noData > 0 ? `(${classCountsInfo.noData})` : "(0)";
   classesHtml += `
     <div class="legend-row" style="margin-top:2px; padding-top:2px; border-top:1px dashed #e2e8f0; color:#64748b;">
       <div class="legend-color-box" style="background:#e2e8f0; border-color:#94a3b8;"></div>
-      <span>データなし</span>
+      <span class="legend-label-text">データなし</span>
+      <span class="legend-count">${noDataLabel}</span>
     </div>
   `;
 
@@ -9927,6 +9979,7 @@ function renderReportSvgMap(varItem, breaks, paletteKey) {
   const legColors = PALETTES[paletteKey].colors;
   const legUnitStr = effective.unit ? ` (${effective.unit})` : "";
   const isUniform = breaks && breaks.length >= 2 && breaks[0] === breaks[breaks.length - 1];
+  const repClassCounts = computeClassCounts(effective.data, breaks, legColors.length);
 
   let repLegTitle = `階級凡例${legUnitStr}`;
   if (isBubble) {
@@ -9937,7 +9990,7 @@ function renderReportSvgMap(varItem, breaks, paletteKey) {
 
   const legX = 14;
   const legY = 14;
-  const legW = 98;
+  const legW = 106;
   const rowH = 11.2;
   const legH = isUniform ? 36.0 : (23.0 + legColors.length * rowH);
 
@@ -9955,10 +10008,12 @@ function renderReportSvgMap(varItem, breaks, paletteKey) {
   const symY = isBubble ? "-0.2" : "0";
 
   if (isUniform) {
+    const totalCount = repClassCounts.counts[legColors.length - 1] || repStats.count || 40;
     legendSvg += `
       <g transform="translate(8, 20.5)">
         <rect x="${symX}" y="${symY}" width="${symW}" height="${symH}" rx="${symRx}" fill="${legColors[legColors.length - 1]}" stroke="#475569" stroke-width="0.5"/>
         <text x="15" y="5.8" font-size="5.4" font-weight="600" fill="#334155">${formatLegendLabel(breaks, 0, legColors.length)}</text>
+        <text x="${legW - 14}" y="5.8" text-anchor="end" font-size="4.8" font-weight="500" fill="#94a3b8">(${totalCount})</text>
       </g>
     `;
   } else {
@@ -9983,6 +10038,7 @@ function renderReportSvgMap(varItem, breaks, paletteKey) {
         <g transform="translate(8, ${curY.toFixed(1)})">
           <rect x="${curSymX}" y="${curSymY}" width="${curSymW}" height="${curSymH}" rx="${curSymRx}" fill="${legColors[i]}" stroke="#475569" stroke-width="0.5"/>
           <text x="15" y="5.8" font-size="5.4" font-weight="600" fill="#334155">${lbl}</text>
+          <text x="${legW - 14}" y="5.8" text-anchor="end" font-size="4.8" font-weight="500" fill="#94a3b8">(${repClassCounts.counts[classIdx]})</text>
         </g>
       `;
     }
