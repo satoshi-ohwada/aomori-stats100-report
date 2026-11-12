@@ -2412,8 +2412,9 @@ function openReportModal() {
   document.getElementById("rep-date-text").textContent = `作成日: ${dateStr}`;
   
   let sourceText = currentVar.source || "令和8年 青森県統計年鑑";
+  sourceText = sourceText.replace(/\u3000/g, " ");
   if (state.isPerCapita) {
-    sourceText += "（※人口補正基準: 令和7年国勢調査確定人口）";
+    sourceText += "（人口補正: 令和7年国勢調査）";
   }
   document.getElementById("rep-source-text").textContent = sourceText;
 

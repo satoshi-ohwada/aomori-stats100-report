@@ -369,18 +369,18 @@
         <!-- A4 Sheet (Portrait: 210mm x 297mm) -->
         <div id="report-sheet">
           
-          <!-- Report Header -->
+          <!-- Report Header (2段独立レイアウト: タイトル/出典 + 指標名/作成日) -->
           <header class="rep-header">
-            <div class="rep-title-group">
-              <h1>青森県 市町村データ分析レポート</h1>
-              <div class="rep-sub">
-                <strong id="rep-target-var-name" style="font-size:1.05rem; color:#2563eb;">人口（人）</strong>
-                <span id="rep-unit-text" style="color:#475569; font-size:0.80rem;">（単位: 人）</span>
-              </div>
+            <div class="rep-header-top">
+              <h1 class="rep-title">青森県 市町村データ分析レポート</h1>
+              <div class="rep-source">出典: <span id="rep-source-text">令和8年 青森県統計年鑑</span></div>
             </div>
-            <div class="rep-meta">
-              <div id="rep-date-text">作成日: 2026年11月11日</div>
-              <div>出典: <span id="rep-source-text">令和8年 青森県統計年鑑</span></div>
+            <div class="rep-header-sub">
+              <div class="rep-sub">
+                <strong id="rep-target-var-name">人口（人）</strong>
+                <span id="rep-unit-text">（単位: 人）</span>
+              </div>
+              <div id="rep-date-text" class="rep-date">作成日: 2026年11月11日</div>
             </div>
           </header>
 
