@@ -541,6 +541,94 @@ body {
   line-height: 1.35;
 }
 
+/* Map Style Mode Switch Buttons (作図形式) */
+.map-style-toggle-box {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.map-style-btn {
+  background: #f8fafc;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.map-style-btn:hover {
+  background: #f1f5f9;
+  color: var(--text-main);
+  border-color: #cbd5e1;
+}
+
+.map-style-btn.active {
+  background: var(--primary);
+  color: #ffffff;
+  border-color: var(--primary);
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.3);
+}
+
+.palette-header-label {
+  font-size: 0.70rem;
+  font-weight: 600;
+  color: #64748b;
+  margin: 10px 0 4px;
+}
+
+/* Bubble Markers (バブル表示用スタイル) */
+.bubble-marker-wrap {
+  background: transparent !important;
+  border: none !important;
+}
+
+.bubble-circle {
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 7px rgba(0, 0, 0, 0.18), 0 0 0 1.5px rgba(255, 255, 255, 0.95);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  user-select: none;
+  cursor: pointer;
+  text-align: center;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.bubble-circle:hover {
+  transform: scale(1.18);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3), 0 0 0 2px #ffffff;
+  z-index: 1000 !important;
+}
+
+.bubble-muni-name {
+  font-weight: 700;
+  line-height: 1.05;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.bubble-muni-val {
+  font-weight: 600;
+  font-size: 0.60rem;
+  line-height: 1.0;
+  margin-top: 1px;
+  opacity: 0.92;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
 /* Color Palette Select */
 .palette-picker {
   display: grid;

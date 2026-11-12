@@ -117,16 +117,29 @@
         </div>
       </div>
 
-      <!-- Section 3: Color Palette -->
+      <!-- Section 3: Map Style & Color Palette -->
       <div class="sidebar-section">
         <div class="step-header">
           <span class="step-badge">STEP 3</span>
           <div class="step-info">
-            <span class="step-title">塗り分けカラー</span>
-            <span class="step-desc">地図とレポートの配色テーマ</span>
+            <span class="step-title">作図形式 ＆ カラー</span>
+            <span class="step-desc">塗り分け・バブル切替と配色</span>
           </div>
         </div>
-        
+
+        <!-- Map Style Toggle (Choropleth vs Bubble) -->
+        <div class="map-style-toggle-box">
+          <button id="btn-style-choropleth" class="map-style-btn active" data-style="choropleth" title="市町村ポリゴンを色分けして表示します（標準）">
+            <i class="fa-solid fa-map"></i>
+            <span>エリア塗り分け</span>
+          </button>
+          <button id="btn-style-bubble" class="map-style-btn" data-style="bubble" title="全自治体を均等なバブル（円）で表示し、面積差の偏りを解消します">
+            <i class="fa-solid fa-circle-dot"></i>
+            <span>バブル表示</span>
+          </button>
+        </div>
+
+        <div class="palette-header-label">配色テーマ</div>
         <div class="palette-picker">
           <button class="palette-btn active" data-palette="blue">
             <div class="palette-swatch">

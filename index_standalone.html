@@ -557,6 +557,94 @@ body {
   line-height: 1.35;
 }
 
+/* Map Style Mode Switch Buttons (作図形式) */
+.map-style-toggle-box {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.map-style-btn {
+  background: #f8fafc;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.map-style-btn:hover {
+  background: #f1f5f9;
+  color: var(--text-main);
+  border-color: #cbd5e1;
+}
+
+.map-style-btn.active {
+  background: var(--primary);
+  color: #ffffff;
+  border-color: var(--primary);
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.3);
+}
+
+.palette-header-label {
+  font-size: 0.70rem;
+  font-weight: 600;
+  color: #64748b;
+  margin: 10px 0 4px;
+}
+
+/* Bubble Markers (バブル表示用スタイル) */
+.bubble-marker-wrap {
+  background: transparent !important;
+  border: none !important;
+}
+
+.bubble-circle {
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 7px rgba(0, 0, 0, 0.18), 0 0 0 1.5px rgba(255, 255, 255, 0.95);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  user-select: none;
+  cursor: pointer;
+  text-align: center;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.bubble-circle:hover {
+  transform: scale(1.18);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3), 0 0 0 2px #ffffff;
+  z-index: 1000 !important;
+}
+
+.bubble-muni-name {
+  font-weight: 700;
+  line-height: 1.05;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.bubble-muni-val {
+  font-weight: 600;
+  font-size: 0.60rem;
+  line-height: 1.0;
+  margin-top: 1px;
+  opacity: 0.92;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
 /* Color Palette Select */
 .palette-picker {
   display: grid;
@@ -1841,16 +1929,29 @@ body {
         </div>
       </div>
 
-      <!-- Section 3: Color Palette -->
+      <!-- Section 3: Map Style & Color Palette -->
       <div class="sidebar-section">
         <div class="step-header">
           <span class="step-badge">STEP 3</span>
           <div class="step-info">
-            <span class="step-title">塗り分けカラー</span>
-            <span class="step-desc">地図とレポートの配色テーマ</span>
+            <span class="step-title">作図形式 ＆ カラー</span>
+            <span class="step-desc">塗り分け・バブル切替と配色</span>
           </div>
         </div>
-        
+
+        <!-- Map Style Toggle (Choropleth vs Bubble) -->
+        <div class="map-style-toggle-box">
+          <button id="btn-style-choropleth" class="map-style-btn active" data-style="choropleth" title="市町村ポリゴンを色分けして表示します（標準）">
+            <i class="fa-solid fa-map"></i>
+            <span>エリア塗り分け</span>
+          </button>
+          <button id="btn-style-bubble" class="map-style-btn" data-style="bubble" title="全自治体を均等なバブル（円）で表示し、面積差の偏りを解消します">
+            <i class="fa-solid fa-circle-dot"></i>
+            <span>バブル表示</span>
+          </button>
+        </div>
+
+        <div class="palette-header-label">配色テーマ</div>
         <div class="palette-picker">
           <button class="palette-btn active" data-palette="blue">
             <div class="palette-swatch">
@@ -7637,11 +7738,13 @@ const PALETTES = {
 const state = {
   activeVarId: "var_2", // 初期指標: 人口
   isPerCapita: false,   // 人口1,000人あたり補正モード（false: 実測値, true: 人口1,000人あたり）
+  mapStyle: "choropleth",  // 作図形式: "choropleth" (エリア塗り分け) または "bubble" (バブル表示)
   activePalette: "blue",
   filteredList: [],
   leafletMap: null,
   geoJsonLayer: null,
   outerBorderLayer: null,
+  bubbleLayerGroup: null,  // バブル表示用レイヤーグループ
   legendControl: null,
   showMuniNames: false,    // 市町村名ラベル表示フラグ
   showValues: false,       // 数値ラベル表示フラグ
@@ -7779,6 +7882,13 @@ function hexToRgb(hex) {
   if (c.length === 3) c = c.split('').map(x => x + x).join('');
   const num = parseInt(c, 16);
   return [ (num >> 16) & 255, (num >> 8) & 255, num & 255 ];
+}
+
+// 輝度に応じたコントラスト文字色の判定（暗い背景には白文字、明るい背景には濃色文字）
+function getContrastingTextColor(hex) {
+  const rgb = hexToRgb(hex || "#ffffff");
+  const lum = 0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2];
+  return lum < 135 ? "#ffffff" : "#0f172a";
 }
 
 // 市町村境界線スタイル計算（濃い色および2番目に濃い色では白線にし、見やすい視認性に最適化）
@@ -8111,6 +8221,7 @@ function initLeafletMap() {
   });
 
   state.leafletMap = map;
+  state.bubbleLayerGroup = L.layerGroup().addTo(map);
 
   const legend = L.control({ position: "topright" });
   legend.onAdd = function() {
@@ -8155,11 +8266,26 @@ function updateLeafletMap() {
     state.outerBorderLayer = null;
   }
 
+  const isBubble = (state.mapStyle === "bubble");
+
   // 1. 各市町村ポリゴンの描画
   state.geoJsonLayer = L.geoJSON(AOMORI_GEOJSON, {
     style: function(feature) {
       const muniName = feature.properties.name;
       const val = effective.data[muniName];
+
+      if (isBubble) {
+        // バブル表示時は背景として淡い白地図スタイルで描画
+        return {
+          fillColor: "#f8fafc",
+          fillOpacity: 0.85,
+          color: "#cbd5e1",
+          weight: 1.0,
+          opacity: 0.9
+        };
+      }
+
+      // エリア塗り分け（標準）
       const fillColor = getColorForValue(val, breaks, state.activePalette);
       const strokeInfo = getBorderStrokeForFeature(fillColor);
 
@@ -8201,9 +8327,9 @@ function updateLeafletMap() {
         mouseover: function(e) {
           const l = e.target;
           l.setStyle({
-            weight: 2.2,
-            color: "#1e293b",
-            fillOpacity: 0.96
+            weight: isBubble ? 1.5 : 2.2,
+            color: isBubble ? "#94a3b8" : "#1e293b",
+            fillOpacity: isBubble ? 0.95 : 0.96
           });
           if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
             l.bringToFront();
@@ -8227,8 +8353,8 @@ function updateLeafletMap() {
   if (outerGeoJSON) {
     state.outerBorderLayer = L.geoJSON(outerGeoJSON, {
       style: {
-        color: "#1e293b",
-        weight: 1.75,
+        color: isBubble ? "#94a3b8" : "#1e293b",
+        weight: isBubble ? 1.4 : 1.75,
         fill: false,
         opacity: 0.92
       },
@@ -8241,8 +8367,210 @@ function updateLeafletMap() {
 
   updateLegendUI(breaks, effective.unit, stats);
 
-  // 市町村名・数値ラベルの更新
-  renderMapLabels();
+  // 3. レイヤー切り替え（バブル表示 vs エリア塗り分けラベル）
+  if (isBubble) {
+    if (state.labelMarkersLayer) state.labelMarkersLayer.clearLayers();
+    renderBubbleLayer(currentVar, breaks, stats);
+  } else {
+    if (state.bubbleLayerGroup) state.bubbleLayerGroup.clearLayers();
+    renderMapLabels();
+  }
+}
+
+// バブル表示レイヤー描画（フォースレイアウト衝突回避・引き出し線付き）
+function renderBubbleLayer(currentVar, breaks, stats) {
+  if (!state.leafletMap || !state.bubbleLayerGroup) return;
+  state.bubbleLayerGroup.clearLayers();
+
+  if (state.mapStyle !== "bubble") return;
+
+  const effective = getEffectiveData(currentVar);
+  const colors = PALETTES[state.activePalette].colors;
+  const numClasses = colors.length;
+
+  // 1. 各自治体の初期ノード構築
+  const nodes = [];
+  for (const [muni, coords] of Object.entries(MUNI_LABEL_COORDS)) {
+    const pt = state.leafletMap.latLngToLayerPoint(coords);
+    const val = effective.data[muni];
+    const rank = stats.ranks[muni];
+
+    // 階級ステップ（0〜4）
+    let stepIdx = -1;
+    if (val !== null && val !== undefined && !isNaN(val)) {
+      for (let i = 0; i < numClasses; i++) {
+        if (val <= breaks[i + 1] || i === numClasses - 1) {
+          stepIdx = i;
+          break;
+        }
+      }
+    }
+
+    // 半径の決定（階級ステップ連動: 最小14px 〜 最大23px）
+    let r = 16;
+    if (stepIdx >= 0) {
+      r = Math.round(14 + stepIdx * 2.25);
+    }
+
+    // 中核都市はアンカーとして位置を安定化
+    const isAnchor = (muni === "弘前市" || muni === "青森市" || muni === "八戸市");
+
+    nodes.push({
+      muni,
+      latlng: coords,
+      origX: pt.x,
+      origY: pt.y,
+      x: pt.x,
+      y: pt.y,
+      r,
+      val,
+      stepIdx,
+      rank,
+      isAnchor
+    });
+  }
+
+  // 2. 力学シミュレーション（フォースレイアウトによる衝突回避）
+  const ITERATIONS = 120;
+  const PADDING = 2.5;
+
+  for (let iter = 0; iter < ITERATIONS; iter++) {
+    const alpha = Math.pow(1.0 - (iter / ITERATIONS), 1.2);
+
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const a = nodes[i];
+        const b = nodes[j];
+
+        let dx = a.x - b.x;
+        let dy = a.y - b.y;
+        let dist = Math.sqrt(dx * dx + dy * dy);
+        const minDist = a.r + b.r + PADDING;
+
+        if (dist < minDist) {
+          if (dist === 0) {
+            dx = (Math.random() - 0.5) * 2;
+            dy = (Math.random() - 0.5) * 2;
+            dist = Math.sqrt(dx * dx + dy * dy) || 1;
+          }
+
+          const overlap = minDist - dist;
+          const fx = (dx / dist) * overlap * 0.5;
+          const fy = (dy / dist) * overlap * 0.5;
+
+          if (a.isAnchor && !b.isAnchor) {
+            b.x -= fx * 1.8;
+            b.y -= fy * 1.8;
+            a.x += fx * 0.2;
+            a.y += fy * 0.2;
+          } else if (!a.isAnchor && b.isAnchor) {
+            a.x += fx * 1.8;
+            a.y += fy * 1.8;
+            b.x -= fx * 0.2;
+            b.y -= fy * 0.2;
+          } else {
+            a.x += fx;
+            a.y += fy;
+            b.x -= fx;
+            b.y -= fy;
+          }
+        }
+      }
+    }
+
+    // 重心への復元引力と最大変位制限
+    nodes.forEach(node => {
+      const spring = node.isAnchor ? 0.06 : 0.035;
+      node.x += (node.origX - node.x) * spring * alpha;
+      node.y += (node.origY - node.y) * spring * alpha;
+
+      const offX = node.x - node.origX;
+      const offY = node.y - node.origY;
+      const distFromOrig = Math.sqrt(offX * offX + offY * offY);
+      const maxOffset = node.isAnchor ? 12 : 55;
+      if (distFromOrig > maxOffset) {
+        const s = maxOffset / distFromOrig;
+        node.x = node.origX + offX * s;
+        node.y = node.origY + offY * s;
+      }
+    });
+  }
+
+  // 3. レイヤー描画（引き出し線 ＋ 起点ドット ＋ バブルマーカー）
+  nodes.forEach(node => {
+    const targetPt = L.point(node.x, node.y);
+    const targetLatLng = state.leafletMap.layerPointToLatLng(targetPt);
+    const distFromOrig = Math.sqrt(Math.pow(node.x - node.origX, 2) + Math.pow(node.y - node.origY, 2));
+
+    // 8px 以上移動した場合は引き出し線と起点ドットを描画
+    if (distFromOrig >= 8) {
+      L.circleMarker(node.latlng, {
+        radius: 2.2,
+        fillColor: "#475569",
+        color: "#ffffff",
+        weight: 1,
+        fillOpacity: 0.9,
+        interactive: false
+      }).addTo(state.bubbleLayerGroup);
+
+      L.polyline([node.latlng, targetLatLng], {
+        color: "#64748b",
+        weight: 1.2,
+        opacity: 0.8,
+        dashArray: "3,3",
+        interactive: false
+      }).addTo(state.bubbleLayerGroup);
+    }
+
+    // バブルの塗り色と文字色
+    const fillColor = (node.stepIdx >= 0) ? colors[node.stepIdx] : "#e2e8f0";
+    const textColor = getContrastingTextColor(fillColor);
+    const strokeBorder = (textColor === "#0f172a") ? "rgba(0,0,0,0.25)" : "rgba(255,255,255,0.9)";
+
+    // 自治体名略称（「市」「町」「村」を除去した名前）
+    const shortName = node.muni.replace(/(?:市|町|村)$/, "");
+    const charLen = shortName.length;
+
+    let nameFontSize = Math.max(7.2, Math.min(10.5, (node.r * 1.5) / Math.max(1.8, charLen)));
+    let valFontSize = Math.max(6.0, Math.min(8.5, node.r * 0.45));
+
+    const formattedVal = (node.val !== null && !isNaN(node.val)) ? formatNum(node.val) : "-";
+
+    const bubbleHtml = `
+      <div class="bubble-circle" style="
+        width: ${node.r * 2}px;
+        height: ${node.r * 2}px;
+        background: ${fillColor};
+        border: 1.5px solid ${strokeBorder};
+        color: ${textColor};
+      ">
+        <span class="bubble-muni-name" style="font-size: ${nameFontSize.toFixed(1)}px;">${shortName}</span>
+        <span class="bubble-muni-val" style="font-size: ${valFontSize.toFixed(1)}px;">${formattedVal}</span>
+      </div>
+    `;
+
+    const icon = L.divIcon({
+      className: "bubble-marker-wrap",
+      html: bubbleHtml,
+      iconSize: [node.r * 2, node.r * 2],
+      iconAnchor: [node.r, node.r]
+    });
+
+    const marker = L.marker(targetLatLng, { icon }).addTo(state.bubbleLayerGroup);
+
+    // ツールチップ設定
+    const rankStr = node.rank ? `（全40市町村中 第 <strong style="color:#2563eb;">${node.rank}</strong> 位）` : "";
+    const valStr = node.val !== null && node.val !== undefined ? `${formatNum(node.val)} <span style="font-size:0.8rem; font-weight:normal;">${effective.unit}</span>` : "データなし";
+    marker.bindTooltip(`
+      <div class="tooltip-muni-name">${node.muni}</div>
+      <div class="tooltip-val">${valStr}</div>
+      <div class="tooltip-rank">${rankStr}</div>
+    `, {
+      className: "muni-tooltip",
+      direction: "top",
+      offset: [0, -node.r]
+    });
+  });
 }
 
 // 市町村名ラベルの表示切替
@@ -8601,6 +8929,26 @@ function initUI() {
   }
   if (btnMode1000) {
     btnMode1000.addEventListener("click", () => setPerCapitaMode(true));
+  }
+
+  // 作図スタイル切り替え（エリア塗り分け vs バブル表示）
+  const btnStyleChoropleth = document.getElementById("btn-style-choropleth");
+  const btnStyleBubble = document.getElementById("btn-style-bubble");
+
+  function setMapStyle(style) {
+    state.mapStyle = style;
+    if (btnStyleChoropleth) btnStyleChoropleth.classList.toggle("active", style === "choropleth");
+    if (btnStyleBubble) btnStyleBubble.classList.toggle("active", style === "bubble");
+
+    updateLeafletMap();
+    updateInfoPanels();
+  }
+
+  if (btnStyleChoropleth) {
+    btnStyleChoropleth.addEventListener("click", () => setMapStyle("choropleth"));
+  }
+  if (btnStyleBubble) {
+    btnStyleBubble.addEventListener("click", () => setMapStyle("bubble"));
   }
 
   // カラーパレット切り替え
@@ -8981,14 +9329,17 @@ function renderReportSvgMap(varItem, breaks, paletteKey) {
     return [x, y];
   }
 
+  const isBubble = (state.mapStyle === "bubble");
   let pathsHtml = "";
 
   // 1. 各市町村ポリゴン
   AOMORI_GEOJSON.features.forEach(feat => {
     const muniName = feat.properties.name;
     const val = effective.data[muniName];
-    const fillColor = getColorForValue(val, breaks, paletteKey);
-    const strokeInfo = getBorderStrokeForFeature(fillColor);
+    const fillColor = isBubble ? "#f8fafc" : getColorForValue(val, breaks, paletteKey);
+    const strokeInfo = isBubble 
+      ? { color: "#cbd5e1", weight: 0.8 } 
+      : getBorderStrokeForFeature(fillColor);
 
     let pathD = "";
     const geom = feat.geometry;
@@ -9030,11 +9381,132 @@ function renderReportSvgMap(varItem, breaks, paletteKey) {
     });
   }
 
-  const outerSvg = outerPathD ? `<path d="${outerPathD}" fill="none" stroke="#1e293b" stroke-width="1.75" stroke-opacity="0.92" stroke-linecap="round" stroke-linejoin="round" />` : "";
+  const outerSvg = outerPathD ? `<path d="${outerPathD}" fill="none" stroke="${isBubble ? '#94a3b8' : '#1e293b'}" stroke-width="${isBubble ? '1.3' : '1.75'}" stroke-opacity="0.92" stroke-linecap="round" stroke-linejoin="round" />` : "";
 
-  // 3. 引き出し線 ＆ 市町村名・数値ラベル（チェックボックスON時、個別/両方対応）
+  // 3. バブル表示 または 通常ラベル表示
   let labelsSvg = "";
-  if (state.showMuniNames || state.showValues) {
+  if (isBubble) {
+    // --- バブル表示モード（SVGベクターレンダリング） ---
+    const repColors = PALETTES[paletteKey].colors;
+    const numClasses = repColors.length;
+
+    // 初期ノード作成
+    const nodes = [];
+    for (const [muni, coords] of Object.entries(MUNI_LABEL_COORDS)) {
+      const [ptX, ptY] = project(coords[0], coords[1]);
+      const val = effective.data[muni];
+
+      let stepIdx = -1;
+      if (val !== null && val !== undefined && !isNaN(val)) {
+        for (let i = 0; i < numClasses; i++) {
+          if (val <= breaks[i + 1] || i === numClasses - 1) {
+            stepIdx = i;
+            break;
+          }
+        }
+      }
+
+      // レポートSVG用半径（9px〜16px）
+      let r = 11;
+      if (stepIdx >= 0) {
+        r = 9 + stepIdx * 1.75;
+      }
+
+      const isAnchor = (muni === "弘前市" || muni === "青森市" || muni === "八戸市");
+      nodes.push({
+        muni,
+        origX: ptX,
+        origY: ptY,
+        x: ptX,
+        y: ptY,
+        r,
+        val,
+        stepIdx,
+        isAnchor
+      });
+    }
+
+    // 衝突回避シミュレーション
+    const ITER = 100;
+    const PAD = 2.0;
+    for (let iter = 0; iter < ITER; iter++) {
+      const alpha = Math.pow(1.0 - (iter / ITER), 1.2);
+      for (let i = 0; i < nodes.length; i++) {
+        for (let j = i + 1; j < nodes.length; j++) {
+          const a = nodes[i];
+          const b = nodes[j];
+          let dx = a.x - b.x;
+          let dy = a.y - b.y;
+          let dist = Math.sqrt(dx * dx + dy * dy);
+          const minDist = a.r + b.r + PAD;
+          if (dist < minDist) {
+            if (dist === 0) {
+              dx = (Math.random() - 0.5) * 2;
+              dy = (Math.random() - 0.5) * 2;
+              dist = Math.sqrt(dx * dx + dy * dy) || 1;
+            }
+            const overlap = minDist - dist;
+            const fx = (dx / dist) * overlap * 0.5;
+            const fy = (dy / dist) * overlap * 0.5;
+            if (a.isAnchor && !b.isAnchor) {
+              b.x -= fx * 1.8; b.y -= fy * 1.8; a.x += fx * 0.2; a.y += fy * 0.2;
+            } else if (!a.isAnchor && b.isAnchor) {
+              a.x += fx * 1.8; a.y += fy * 1.8; b.x -= fx * 0.2; b.y -= fy * 0.2;
+            } else {
+              a.x += fx; a.y += fy; b.x -= fx; b.y -= fy;
+            }
+          }
+        }
+      }
+      nodes.forEach(node => {
+        const spring = node.isAnchor ? 0.06 : 0.035;
+        node.x += (node.origX - node.x) * spring * alpha;
+        node.y += (node.origY - node.y) * spring * alpha;
+        const offX = node.x - node.origX;
+        const offY = node.y - node.origY;
+        const d = Math.sqrt(offX * offX + offY * offY);
+        const maxOff = node.isAnchor ? 10 : 45;
+        if (d > maxOff) {
+          const s = maxOff / d;
+          node.x = node.origX + offX * s;
+          node.y = node.origY + offY * s;
+        }
+      });
+    }
+
+    // SVG要素組み立て
+    let leaderSvg = "";
+    let bubblesSvg = "";
+
+    nodes.forEach(node => {
+      const distFromOrig = Math.sqrt(Math.pow(node.x - node.origX, 2) + Math.pow(node.y - node.origY, 2));
+      if (distFromOrig >= 6) {
+        leaderSvg += `
+          <line x1="${node.origX.toFixed(1)}" y1="${node.origY.toFixed(1)}" x2="${node.x.toFixed(1)}" y2="${node.y.toFixed(1)}" stroke="#64748b" stroke-width="0.8" stroke-dasharray="2,2" stroke-opacity="0.8"/>
+          <circle cx="${node.origX.toFixed(1)}" cy="${node.origY.toFixed(1)}" r="1.5" fill="#475569" stroke="#ffffff" stroke-width="0.6"/>
+        `;
+      }
+
+      const fillColor = (node.stepIdx >= 0) ? repColors[node.stepIdx] : "#e2e8f0";
+      const textColor = getContrastingTextColor(fillColor);
+      const strokeBorder = (textColor === "#0f172a") ? "rgba(0,0,0,0.3)" : "rgba(255,255,255,0.95)";
+      const shortName = node.muni.replace(/(?:市|町|村)$/, "");
+      const valStr = (node.val !== null && !isNaN(node.val)) ? formatNum(node.val) : "-";
+
+      const nameFontSize = Math.max(5.0, Math.min(7.2, (node.r * 1.3) / Math.max(1.8, shortName.length)));
+      const valFontSize = Math.max(4.2, Math.min(5.8, node.r * 0.45));
+
+      bubblesSvg += `
+        <g transform="translate(${node.x.toFixed(1)}, ${node.y.toFixed(1)})" pointer-events="none">
+          <circle cx="0" cy="0" r="${node.r.toFixed(1)}" fill="${fillColor}" stroke="${strokeBorder}" stroke-width="1.0" />
+          <text x="0" y="${(-node.r * 0.15).toFixed(1)}" text-anchor="middle" font-size="${nameFontSize.toFixed(1)}" font-weight="700" fill="${textColor}">${shortName}</text>
+          <text x="0" y="${(node.r * 0.55).toFixed(1)}" text-anchor="middle" font-size="${valFontSize.toFixed(1)}" font-weight="600" fill="${textColor}">${valStr}</text>
+        </g>
+      `;
+    });
+
+    labelsSvg = leaderSvg + bubblesSvg;
+  } else if (state.showMuniNames || state.showValues) {
     // 3-1. 狭小密集地域（鶴田町・板柳町・藤崎町・田舎館村）の引き出し線描画
     let leaderLinesSvg = "";
     Object.keys(LEADER_LINE_CONFIG).forEach(muniName => {
