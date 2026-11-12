@@ -139,6 +139,24 @@
           </button>
         </div>
 
+        <!-- Bubble Size Options (バブル表示選択時に表示) -->
+        <div id="bubble-size-option-box" class="bubble-size-option-box" style="display: none;">
+          <div class="bubble-sub-label">
+            <i class="fa-solid fa-circle-nodes"></i>
+            <span>バブルのサイズ変化</span>
+          </div>
+          <div class="bubble-size-toggle-box">
+            <button id="btn-bubble-size-step" class="bubble-size-btn active" data-size-mode="step" title="5段階の階級に合わせて段階的にバブルを大きくします">
+              <i class="fa-solid fa-layer-group"></i>
+              <span>階級別（段階的）</span>
+            </button>
+            <button id="btn-bubble-size-continuous" class="bubble-size-btn" data-size-mode="continuous" title="統計数値の大きさに応じて無段階に滑らかに変化させます（視認性補正済み）">
+              <i class="fa-solid fa-chart-line"></i>
+              <span>数値連動（無段階）</span>
+            </button>
+          </div>
+        </div>
+
         <div class="palette-header-label">配色テーマ</div>
         <div class="palette-picker">
           <button class="palette-btn active" data-palette="blue">

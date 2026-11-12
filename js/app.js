@@ -73,6 +73,7 @@ const state = {
   activeVarId: "var_2", // 初期指標: 人口
   isPerCapita: false,   // 人口1,000人あたり換算モード（false: 実測値, true: 人口1,000人あたり）
   mapStyle: "choropleth",  // 作図形式: "choropleth" (エリア塗り分け) または "bubble" (バブル表示)
+  bubbleSizeMode: "step",  // バブルサイズ変化方式: "step" (階級別・段階的) または "continuous" (数値連動・無段階)
   activePalette: "blue",
   filteredList: [],
   leafletMap: null,
@@ -717,6 +718,54 @@ function updateLeafletMap() {
   }
 }
 
+// バブルの半径（ピクセル）を計算する共通ヘルパー関数
+// 階級連動（段階的）と数値連動（無段階・視認性補正）に対応
+function calculateBubbleRadius(val, stepIdx, numClasses, stats, sizeMode = "step", isPrint = false) {
+  if (sizeMode === "step") {
+    // パターン1: 階級に合わせて段階的に大きくする
+    if (isPrint) {
+      if (stepIdx < 0) return 11;
+      return 9 + stepIdx * 1.75; // 9.0px 〜 16.0px (5段階)
+    } else {
+      if (stepIdx < 0) return 16;
+      return Math.round(14 + stepIdx * 2.25); // 14px 〜 23px (5段階)
+    }
+  }
+
+  // パターン2: 数値の大きさに合わせて無段階に変化する（視認性・知覚補正付き）
+  // 数値の違いをそのまま線形反映すると小規模自治体が極小に潰れるか上位が肥大化するため、
+  // 最小・最大半径を適切に制約し、べき乗補正（指数0.55）により中間層の識別性と視認性を両立
+  const minR = isPrint ? 8.5 : 13.0;
+  const maxR = isPrint ? 17.5 : 26.0;
+
+  if (val === null || val === undefined || isNaN(val)) {
+    return isPrint ? 10.5 : 15.0; // 欠損値用中間サイズ
+  }
+
+  let minVal = 0;
+  let maxVal = 1;
+  if (stats) {
+    if (typeof stats.min === "object" && stats.min !== null) minVal = stats.min.val;
+    else if (typeof stats.min === "number") minVal = stats.min;
+
+    if (typeof stats.max === "object" && stats.max !== null) maxVal = stats.max.val;
+    else if (typeof stats.max === "number") maxVal = stats.max;
+  }
+
+  if (minVal === null || maxVal === null || minVal === maxVal || isNaN(minVal) || isNaN(maxVal)) {
+    return (minR + maxR) / 2;
+  }
+
+  // 相対位置 [0, 1] に正規化（外れ値安全クランプ）
+  const t = Math.max(0, Math.min(1, (val - minVal) / (maxVal - minVal)));
+
+  // 知覚・視認性補正カーブ（Flannery知覚補正・歪度緩和: 指数0.55）
+  const tScaled = Math.pow(t, 0.55);
+
+  const r = minR + (maxR - minR) * tScaled;
+  return isPrint ? Number(r.toFixed(1)) : Math.round(r * 2) / 2; // Leafletは0.5px刻み
+}
+
 // バブル表示レイヤー描画（フォースレイアウト衝突回避・引き出し線付き）
 function renderBubbleLayer(currentVar, breaks, stats) {
   if (!state.leafletMap) return;
@@ -755,11 +804,8 @@ function renderBubbleLayer(currentVar, breaks, stats) {
       }
     }
 
-    // 半径の決定（階級ステップ連動: 最小14px 〜 最大23px）
-    let r = 16;
-    if (stepIdx >= 0) {
-      r = Math.round(14 + stepIdx * 2.25);
-    }
+    // 半径の決定（階級別ステップ連動 または 数値連動・視認性補正）
+    const r = calculateBubbleRadius(val, stepIdx, numClasses, stats, state.bubbleSizeMode, false);
 
     // 中核都市はアンカーとして位置を安定化
     const isAnchor = (muni === "弘前市" || muni === "青森市" || muni === "八戸市");
@@ -1291,6 +1337,14 @@ function updateLegendUI(breaks, unit, stats = null) {
   const colors = PALETTES[state.activePalette].colors;
   const unitStr = unit ? ` (${unit})` : "";
 
+  // 凡例タイトルの動的設定（通常塗り分け / バブル段階 / バブル無段階）
+  let legendTitleText = `階級凡例${unitStr}`;
+  if (state.mapStyle === "bubble") {
+    legendTitleText = (state.bubbleSizeMode === "continuous")
+      ? `バブル凡例 (数値無段階)${unitStr}`
+      : `バブル凡例 (階級別)${unitStr}`;
+  }
+
   // 1. 階級凡例行（上＝大きい値・濃い色、下＝小さい値・薄い色 で箱ひげ図と高さを完全連動）
   let classesHtml = "";
   const isUniform = breaks && breaks.length >= 2 && breaks[0] === breaks[breaks.length - 1];
@@ -1304,9 +1358,14 @@ function updateLegendUI(breaks, unit, stats = null) {
     `;
   } else {
     for (let i = colors.length - 1; i >= 0; i--) {
+      let boxCustomStyle = "";
+      if (state.mapStyle === "bubble" && state.bubbleSizeMode === "step") {
+        const bubbleBoxSize = 7.5 + i * 1.5; // 7.5px 〜 13.5px
+        boxCustomStyle = `width:${bubbleBoxSize}px; height:${bubbleBoxSize}px; border-radius:50%;`;
+      }
       classesHtml += `
         <div class="legend-row">
-          <div class="legend-color-box" style="background:${colors[i]}; border-color:#334155;"></div>
+          <div class="legend-color-box" style="background:${colors[i]}; border-color:#334155; ${boxCustomStyle}"></div>
           <span>${formatLegendLabel(breaks, i, colors.length)}</span>
         </div>
       `;
@@ -1326,7 +1385,7 @@ function updateLegendUI(breaks, unit, stats = null) {
   // 3. 全体HTML（2カラムレイアウト）
   legendEl.innerHTML = `
     <div class="legend-header-flex">
-      <span class="legend-title">階級凡例${unitStr}</span>
+      <span class="legend-title">${legendTitleText}</span>
       <span class="legend-box-title">全体分布</span>
     </div>
     <div class="legend-content-flex">
@@ -1386,6 +1445,9 @@ function initUI() {
   // 作図スタイル切り替え（エリア塗り分け vs バブル表示）
   const btnStyleChoropleth = document.getElementById("btn-style-choropleth");
   const btnStyleBubble = document.getElementById("btn-style-bubble");
+  const bubbleSizeOptionBox = document.getElementById("bubble-size-option-box");
+  const btnBubbleSizeStep = document.getElementById("btn-bubble-size-step");
+  const btnBubbleSizeContinuous = document.getElementById("btn-bubble-size-continuous");
 
   function setMapStyle(style) {
     if (state.mapStyle === style) return;
@@ -1413,9 +1475,34 @@ function initUI() {
     if (btnStyleChoropleth) btnStyleChoropleth.classList.toggle("active", style === "choropleth");
     if (btnStyleBubble) btnStyleBubble.classList.toggle("active", style === "bubble");
 
+    // バブルオプションパネルの表示/非表示連動
+    if (bubbleSizeOptionBox) {
+      bubbleSizeOptionBox.style.display = (style === "bubble") ? "block" : "none";
+    }
+
     updateStep4UI();
     updateLeafletMap();
     updateInfoPanels();
+  }
+
+  // バブルサイズ方式切り替え（階級別・段階的 vs 数値連動・無段階）
+  function setBubbleSizeMode(mode) {
+    if (state.bubbleSizeMode === mode) return;
+    state.bubbleSizeMode = mode;
+
+    if (btnBubbleSizeStep) btnBubbleSizeStep.classList.toggle("active", mode === "step");
+    if (btnBubbleSizeContinuous) btnBubbleSizeContinuous.classList.toggle("active", mode === "continuous");
+
+    if (state.mapStyle === "bubble") {
+      updateLeafletMap();
+      const currentVar = STATS_DATA.find(v => v.id === state.activeVarId);
+      if (currentVar) {
+        const effective = getEffectiveData(currentVar);
+        const stats = state.currentStats || computeStats(effective);
+        const breaks = (state.currentBreaks && state.currentBreaks.length) ? state.currentBreaks : computeSmartBreaks(stats.sorted, 5);
+        updateLegendUI(breaks, effective.unit, stats);
+      }
+    }
   }
 
   if (btnStyleChoropleth) {
@@ -1423,6 +1510,12 @@ function initUI() {
   }
   if (btnStyleBubble) {
     btnStyleBubble.addEventListener("click", () => setMapStyle("bubble"));
+  }
+  if (btnBubbleSizeStep) {
+    btnBubbleSizeStep.addEventListener("click", () => setBubbleSizeMode("step"));
+  }
+  if (btnBubbleSizeContinuous) {
+    btnBubbleSizeContinuous.addEventListener("click", () => setBubbleSizeMode("continuous"));
   }
 
   // カラーパレット切り替え
@@ -1770,6 +1863,7 @@ function updateInfoPanels() {
    ========================================================================== */
 function renderReportSvgMap(varItem, breaks, paletteKey) {
   const effective = getEffectiveData(varItem);
+  const repStats = computeStats(effective);
 
   const minLon = 139.8601;
   const maxLon = 141.6826;
@@ -1881,11 +1975,8 @@ function renderReportSvgMap(varItem, breaks, paletteKey) {
         }
       }
 
-      // レポートSVG用半径（9px〜16px）
-      let r = 11;
-      if (stepIdx >= 0) {
-        r = 9 + stepIdx * 1.75;
-      }
+      // レポートSVG用半径（階級別ステップ連動 または 数値連動・視認性補正）
+      const r = calculateBubbleRadius(val, stepIdx, numClasses, repStats, state.bubbleSizeMode, true);
 
       const isAnchor = (muni === "弘前市" || muni === "青森市" || muni === "八戸市");
       nodes.push({
@@ -2053,6 +2144,13 @@ function renderReportSvgMap(varItem, breaks, paletteKey) {
   const legUnitStr = effective.unit ? ` (${effective.unit})` : "";
   const isUniform = breaks && breaks.length >= 2 && breaks[0] === breaks[breaks.length - 1];
 
+  let repLegTitle = `階級凡例${legUnitStr}`;
+  if (isBubble) {
+    repLegTitle = (state.bubbleSizeMode === "continuous")
+      ? `バブル凡例 (数値無段階)${legUnitStr}`
+      : `バブル凡例 (階級別)${legUnitStr}`;
+  }
+
   const legX = 14;
   const legY = 14;
   const legW = 98;
@@ -2062,7 +2160,7 @@ function renderReportSvgMap(varItem, breaks, paletteKey) {
   let legendSvg = `
     <g class="rep-map-legend" transform="translate(${legX}, ${legY})" pointer-events="none">
       <rect x="0" y="0" width="${legW}" height="${legH.toFixed(1)}" rx="4" ry="4" fill="#ffffff" fill-opacity="0.95" stroke="#94a3b8" stroke-width="0.8" stroke-opacity="0.85"/>
-      <text x="8" y="11.5" font-size="6.4" font-weight="700" fill="#1e293b">階級凡例${legUnitStr}</text>
+      <text x="8" y="11.5" font-size="6.4" font-weight="700" fill="#1e293b">${repLegTitle}</text>
       <line x1="8" y1="14.5" x2="${legW - 8}" y2="14.5" stroke="#cbd5e1" stroke-width="0.5"/>
   `;
 
@@ -2083,9 +2181,23 @@ function renderReportSvgMap(varItem, breaks, paletteKey) {
     for (let i = 0; i < legColors.length; i++) {
       const curY = 20.5 + i * rowH;
       const lbl = formatLegendLabel(breaks, i, legColors.length);
+      const classIdx = legColors.length - 1 - i;
+      let curSymW = symW;
+      let curSymH = symH;
+      let curSymRx = symRx;
+      let curSymX = symX;
+      let curSymY = symY;
+      if (isBubble && state.bubbleSizeMode === "step") {
+        const sz = 5.2 + classIdx * 0.9; // 5.2px 〜 8.8px
+        curSymW = sz.toFixed(1);
+        curSymH = sz.toFixed(1);
+        curSymRx = (sz / 2).toFixed(2);
+        curSymX = (5.5 - sz / 2).toFixed(1);
+        curSymY = (3.5 - sz / 2).toFixed(1);
+      }
       legendSvg += `
         <g transform="translate(8, ${curY.toFixed(1)})">
-          <rect x="${symX}" y="${symY}" width="${symW}" height="${symH}" rx="${symRx}" fill="${legColors[i]}" stroke="#475569" stroke-width="0.5"/>
+          <rect x="${curSymX}" y="${curSymY}" width="${curSymW}" height="${curSymH}" rx="${curSymRx}" fill="${legColors[i]}" stroke="#475569" stroke-width="0.5"/>
           <text x="15" y="5.8" font-size="5.4" font-weight="600" fill="#334155">${lbl}</text>
         </g>
       `;

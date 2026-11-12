@@ -578,6 +578,72 @@ body {
   box-shadow: 0 1px 3px rgba(37, 99, 235, 0.3);
 }
 
+/* Bubble Size Mode Options (バブルサイズ方式切り替え) */
+.bubble-size-option-box {
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: #f1f5f9;
+  border-radius: var(--radius-sm);
+  border: 1px solid #e2e8f0;
+  animation: fadeInSizeBox 0.2s ease-in-out;
+}
+
+@keyframes fadeInSizeBox {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.bubble-sub-label {
+  font-size: 0.70rem;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.bubble-sub-label i {
+  color: var(--primary);
+  font-size: 0.75rem;
+}
+
+.bubble-size-toggle-box {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.bubble-size-btn {
+  background: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 5px 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.bubble-size-btn:hover {
+  background: #f8fafc;
+  color: var(--text-main);
+  border-color: #cbd5e1;
+}
+
+.bubble-size-btn.active {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.25);
+}
+
 .palette-header-label {
   font-size: 0.70rem;
   font-weight: 600;
