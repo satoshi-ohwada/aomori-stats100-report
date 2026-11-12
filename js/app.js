@@ -713,10 +713,17 @@ function updateLeafletMap() {
 
 // バブル表示レイヤー描画（フォースレイアウト衝突回避・引き出し線付き）
 function renderBubbleLayer(currentVar, breaks, stats) {
-  if (!state.leafletMap || !state.bubbleLayerGroup) return;
-  state.bubbleLayerGroup.clearLayers();
+  if (!state.leafletMap) return;
+
+  if (state.bubbleLayerGroup) {
+    state.leafletMap.removeLayer(state.bubbleLayerGroup);
+    state.bubbleLayerGroup = null;
+  }
 
   if (state.mapStyle !== "bubble") return;
+
+  // 常に最前面レイヤーグループとしてマップに追加
+  state.bubbleLayerGroup = L.layerGroup().addTo(state.leafletMap);
 
   const effective = getEffectiveData(currentVar);
   const colors = PALETTES[state.activePalette].colors;
@@ -725,7 +732,9 @@ function renderBubbleLayer(currentVar, breaks, stats) {
   // 1. 各自治体の初期ノード構築
   const nodes = [];
   for (const [muni, coords] of Object.entries(MUNI_LABEL_COORDS)) {
-    const pt = state.leafletMap.latLngToLayerPoint(coords);
+    // MUNI_LABEL_COORDS は [経度(lon), 緯度(lat)] なので Leaflet の [lat, lon] に正しく変換
+    const latLng = L.latLng(coords[1], coords[0]);
+    const pt = state.leafletMap.latLngToLayerPoint(latLng);
     const val = effective.data[muni];
     const rank = stats.ranks[muni];
 
@@ -751,7 +760,7 @@ function renderBubbleLayer(currentVar, breaks, stats) {
 
     nodes.push({
       muni,
-      latlng: coords,
+      latlng: latLng,
       origX: pt.x,
       origY: pt.y,
       x: pt.x,
@@ -890,7 +899,10 @@ function renderBubbleLayer(currentVar, breaks, stats) {
       iconAnchor: [node.r, node.r]
     });
 
-    const marker = L.marker(targetLatLng, { icon }).addTo(state.bubbleLayerGroup);
+    const marker = L.marker(targetLatLng, { 
+      icon: icon,
+      zIndexOffset: 1000 
+    }).addTo(state.bubbleLayerGroup);
 
     // ツールチップ設定
     const rankStr = node.rank ? `（全40市町村中 第 <strong style="color:#2563eb;">${node.rank}</strong> 位）` : "";
@@ -1343,13 +1355,13 @@ function initUI() {
     btnToggleSidebar.addEventListener("click", () => {
       appSidebar.classList.toggle("collapsed");
       setTimeout(() => {
-        fitMapToContainer();
+        updateLeafletMap();
       }, 260);
     });
   }
 
   window.addEventListener("resize", () => {
-    fitMapToContainer();
+    updateLeafletMap();
   });
 
   // レポートモーダル関連

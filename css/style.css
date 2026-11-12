@@ -586,7 +586,8 @@ body {
 }
 
 /* Bubble Markers (バブル表示用スタイル) */
-.bubble-marker-wrap {
+.bubble-marker-wrap,
+.leaflet-div-icon.bubble-marker-wrap {
   background: transparent !important;
   border: none !important;
 }
