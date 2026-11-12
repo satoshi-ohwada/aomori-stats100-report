@@ -8315,7 +8315,9 @@ function updateLeafletMap() {
       const val = effective.data[muniName];
       const rank = stats.ranks[muniName];
 
-      const rankStr = rank ? `（全40市町村中 第 <strong style="color:#2563eb;">${rank}</strong> 位）` : "";
+      const totalValid = stats.count || 40;
+      const rankScope = totalValid === 40 ? "全40市町村中" : `対象${totalValid}市町村中`;
+      const rankStr = rank ? `（${rankScope} 第 <strong style="color:#2563eb;">${rank}</strong> 位）` : "";
       const valStr = val !== null && val !== undefined ? `${formatNum(val)} <span style="font-size:0.8rem; font-weight:normal;">${effective.unit}</span>` : "データなし";
 
       let popInfo = "";
@@ -8606,7 +8608,9 @@ function renderBubbleLayer(currentVar, breaks, stats) {
     }).addTo(state.bubbleLayerGroup);
 
     // ツールチップ設定
-    const rankStr = node.rank ? `（全40市町村中 第 <strong style="color:#2563eb;">${node.rank}</strong> 位）` : "";
+    const totalValid = stats.count || 40;
+    const rankScope = totalValid === 40 ? "全40市町村中" : `対象${totalValid}市町村中`;
+    const rankStr = node.rank ? `（${rankScope} 第 <strong style="color:#2563eb;">${node.rank}</strong> 位）` : "";
     const valStr = node.val !== null && node.val !== undefined ? `${formatNum(node.val)} <span style="font-size:0.8rem; font-weight:normal;">${effective.unit}</span>` : "データなし";
     marker.bindTooltip(`
       <div class="tooltip-muni-name">${node.muni}</div>
@@ -8681,8 +8685,8 @@ function toggleMuniNames(show) {
     const currentVar = STATS_DATA.find(v => v.id === state.activeVarId);
     if (currentVar) {
       const effective = getEffectiveData(currentVar);
-      const breaks = state.currentBreaks && state.currentBreaks.length ? state.currentBreaks : calcJenksBreaks(effective.data, 5);
-      const stats = state.currentStats || calcBasicStats(effective.data);
+      const stats = state.currentStats || computeStats(effective);
+      const breaks = (state.currentBreaks && state.currentBreaks.length) ? state.currentBreaks : computeSmartBreaks(stats.sorted, 5);
       renderBubbleLayer(currentVar, breaks, stats);
     }
   } else {
@@ -8709,8 +8713,8 @@ function toggleValues(show) {
     const currentVar = STATS_DATA.find(v => v.id === state.activeVarId);
     if (currentVar) {
       const effective = getEffectiveData(currentVar);
-      const breaks = state.currentBreaks && state.currentBreaks.length ? state.currentBreaks : calcJenksBreaks(effective.data, 5);
-      const stats = state.currentStats || calcBasicStats(effective.data);
+      const stats = state.currentStats || computeStats(effective);
+      const breaks = (state.currentBreaks && state.currentBreaks.length) ? state.currentBreaks : computeSmartBreaks(stats.sorted, 5);
       renderBubbleLayer(currentVar, breaks, stats);
     }
   } else {
@@ -9737,10 +9741,16 @@ function renderReportSvgMap(varItem, breaks, paletteKey) {
       <line x1="8" y1="14.5" x2="${legW - 8}" y2="14.5" stroke="#cbd5e1" stroke-width="0.5"/>
   `;
 
+  const symW = isBubble ? "7.5" : "11";
+  const symH = isBubble ? "7.5" : "7";
+  const symRx = isBubble ? "3.75" : "1";
+  const symX = isBubble ? "1.8" : "0";
+  const symY = isBubble ? "-0.2" : "0";
+
   if (isUniform) {
     legendSvg += `
       <g transform="translate(8, 20.5)">
-        <rect x="0" y="0" width="11" height="7" rx="1" fill="${legColors[legColors.length - 1]}" stroke="#475569" stroke-width="0.5"/>
+        <rect x="${symX}" y="${symY}" width="${symW}" height="${symH}" rx="${symRx}" fill="${legColors[legColors.length - 1]}" stroke="#475569" stroke-width="0.5"/>
         <text x="15" y="5.8" font-size="5.4" font-weight="600" fill="#334155">${formatLegendLabel(breaks, 0, legColors.length)}</text>
       </g>
     `;
@@ -9750,7 +9760,7 @@ function renderReportSvgMap(varItem, breaks, paletteKey) {
       const lbl = formatLegendLabel(breaks, i, legColors.length);
       legendSvg += `
         <g transform="translate(8, ${curY.toFixed(1)})">
-          <rect x="0" y="0" width="11" height="7" rx="1" fill="${legColors[i]}" stroke="#475569" stroke-width="0.5"/>
+          <rect x="${symX}" y="${symY}" width="${symW}" height="${symH}" rx="${symRx}" fill="${legColors[i]}" stroke="#475569" stroke-width="0.5"/>
           <text x="15" y="5.8" font-size="5.4" font-weight="600" fill="#334155">${lbl}</text>
         </g>
       `;
@@ -9775,8 +9785,17 @@ function buildReportDistributionSVG(nums, min, mean, median, max, width = 310, h
   if (!nums || nums.length < 3) {
     return `<svg width="${width}" height="${height}"><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="10" fill="#94a3b8">データ不足（3件以上必要）</text></svg>`;
   }
+  // 入力配列の正規化（数値配列または [{val}] オブジェクト配列の両方に完全対応）
+  const cleanNums = nums
+    .map(v => (typeof v === "object" && v !== null ? v.val : v))
+    .filter(v => typeof v === "number" && !isNaN(v));
+
+  if (cleanNums.length < 3) {
+    return `<svg width="${width}" height="${height}"><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="10" fill="#94a3b8">データ不足（3件以上必要）</text></svg>`;
+  }
+
   const valFmt = typeof formatValFn === "function" ? formatValFn : formatNum;
-  const n = nums.length;
+  const n = cleanNums.length;
   const range = (max - min) || 1;
 
   // 7 Bins (ヒストグラム階級分割)
@@ -9784,7 +9803,7 @@ function buildReportDistributionSVG(nums, min, mean, median, max, width = 310, h
   const binWidth = range / numBins;
   const bins = Array(numBins).fill(0);
 
-  nums.forEach(v => {
+  cleanNums.forEach(v => {
     let idx = Math.floor((v - min) / binWidth);
     if (idx >= numBins) idx = numBins - 1;
     if (idx < 0) idx = 0;
@@ -9793,10 +9812,10 @@ function buildReportDistributionSVG(nums, min, mean, median, max, width = 310, h
   const maxBinCount = Math.max(...bins, 1);
 
   // カーネル密度推定 (KDE) - Silverman's rule of thumb (0除算・NaN完全防止ガード)
-  const variance = nums.reduce((acc, v) => acc + Math.pow(v - mean, 2), 0) / (n - 1 || 1);
+  const variance = cleanNums.reduce((acc, v) => acc + Math.pow(v - mean, 2), 0) / (n - 1 || 1);
   const sd = Math.sqrt(variance) || 1;
-  const q1 = computePercentile(nums, 0.25);
-  const q3 = computePercentile(nums, 0.75);
+  const q1 = computePercentile(cleanNums, 0.25);
+  const q3 = computePercentile(cleanNums, 0.75);
   const iqr = (q3 - q1) || sd;
   
   let bw = 0.9 * Math.min(sd, (iqr / 1.34) || sd) * Math.pow(n, -0.2);
@@ -9811,7 +9830,7 @@ function buildReportDistributionSVG(nums, min, mean, median, max, width = 310, h
   for (let p = 0; p <= pts; p++) {
     const xVal = min + (range / pts) * p;
     let density = 0;
-    nums.forEach(xi => {
+    cleanNums.forEach(xi => {
       const u = (xVal - xi) / bw;
       density += (1 / Math.sqrt(2 * Math.PI)) * Math.exp(-0.5 * u * u);
     });
@@ -10057,7 +10076,7 @@ function openReportModal() {
 
   const effective = getEffectiveData(currentVar);
   const stats = state.currentStats || computeStats(effective);
-  const breaks = state.currentBreaks || computeQuantileBreaks(stats.sorted, 5);
+  const breaks = (state.currentBreaks && state.currentBreaks.length) ? state.currentBreaks : computeSmartBreaks(stats.sorted, 5);
 
   const today = new Date();
   const dateStr = `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日`;
@@ -10073,25 +10092,9 @@ function openReportModal() {
   }
   document.getElementById("rep-source-text").textContent = sourceText;
 
-  // 正確なアスペクト比でベクターマップを生成（縦置き大画面）
+  // 正確なアスペクト比でベクターマップを生成（縦置き大画面、インセット凡例内蔵）
   const mapSvgWrapper = document.getElementById("rep-map-render-target");
   mapSvgWrapper.innerHTML = renderReportSvgMap(currentVar, breaks, state.activePalette);
-
-  const repLegEl = document.getElementById("rep-legend-items");
-  if (repLegEl) {
-    const isBubble = (state.mapStyle === "bubble");
-    const colors = PALETTES[state.activePalette].colors;
-    let legendItems = "";
-    for (let i = 0; i < colors.length; i++) {
-      legendItems += `
-        <div style="display:flex; align-items:center; gap:4px;">
-          <span style="display:inline-block; width:${isBubble ? '10px' : '12px'}; height:${isBubble ? '10px' : '9px'}; background:${colors[i]}; border:1px solid #334155; border-radius:${isBubble ? '50%' : '2px'};"></span>
-          <span>${formatLegendLabel(breaks, i, colors.length)}</span>
-        </div>
-      `;
-    }
-    repLegEl.innerHTML = legendItems;
-  }
 
   // 基本統計サマリー表
   document.getElementById("rep-stat-count").textContent = `${stats.count} / 40`;
@@ -10144,9 +10147,15 @@ function openReportModal() {
 
   const footerNote = document.getElementById("rep-footer-note");
   if (footerNote) {
-    footerNote.textContent = state.isPerCapita
-      ? "分析対象: 青森県全40市町村（令和7年国勢調査人口による人口1,000人あたり換算値）"
-      : "分析対象: 青森県全40市町村（40市町村の有効データを集計）";
+    if (state.isPerCapita) {
+      footerNote.textContent = stats.count === 40
+        ? "分析対象: 青森県全40市町村（令和7年国勢調査人口による人口1,000人あたり換算値）"
+        : `分析対象: 青森県40市町村中、公表・有効データのある${stats.count}市町村（人口1,000人あたり換算値 / 一部非公表等）`;
+    } else {
+      footerNote.textContent = stats.count === 40
+        ? "分析対象: 青森県全40市町村（40市町村の有効データを集計）"
+        : `分析対象: 青森県40市町村中、公表・有効データのある${stats.count}市町村（一部自治体は秘匿・非公表等でデータなし）`;
+    }
   }
 
   document.getElementById("report-modal").classList.remove("hidden");
