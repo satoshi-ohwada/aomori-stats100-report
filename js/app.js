@@ -550,10 +550,10 @@ function fitMapToContainer() {
   state.leafletMap.invalidateSize();
   const bounds = state.geoJsonLayer.getBounds();
   
-  // 右上凡例（幅約185px）と重ならないよう、東側（右側）にパディングを確保して地図を西寄りにフィット
+  // 右側凡例（幅約185px）と程よい間隔を保ちつつ、下北半島や八戸方面が重ならないよう東側パディングを設定
   state.leafletMap.fitBounds(bounds, {
     paddingTopLeft: [10, 10],      // [x(左), y(上)]
-    paddingBottomRight: [205, 10], // [x(右), y(下)]: 東側に約205pxの余白を空けて地図を西側にオフセット
+    paddingBottomRight: [120, 10], // [x(右), y(下)]: 東側に約120pxのパディングを設けて凡例と心地よい間隔で配置
     animate: false
   });
 }
