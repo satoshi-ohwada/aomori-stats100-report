@@ -1073,7 +1073,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: 10px;
+  gap: 12px;
   margin-bottom: 4px;
   padding-bottom: 3px;
   border-bottom: 1px solid #e2e8f0;
@@ -1087,7 +1087,7 @@ body {
 }
 
 .legend-box-title {
-  font-size: 0.62rem;
+  font-size: 0.65rem;
   font-weight: 600;
   color: #64748b;
   white-space: nowrap;
@@ -1129,7 +1129,7 @@ body {
 }
 
 .boxplot-dot:hover {
-  r: 3.8px !important;
+  r: 4.2px !important;
   fill: #2563eb !important;
   fill-opacity: 1 !important;
   stroke: #ffffff !important;
