@@ -472,7 +472,7 @@ body {
   gap: 1px;
 }
 
-/* Per-Capita Mode Switch Buttons (人口補正) */
+/* Per-Capita Mode Switch Buttons (人口あたり換算) */
 .per-capita-toggle-box {
   display: grid;
   grid-template-columns: 1fr 1fr;

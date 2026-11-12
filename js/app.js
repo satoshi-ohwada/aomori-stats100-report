@@ -71,7 +71,7 @@ const PALETTES = {
 // アプリケーション状態
 const state = {
   activeVarId: "var_2", // 初期指標: 人口
-  isPerCapita: false,   // 人口1,000人あたり補正モード（false: 実測値, true: 人口1,000人あたり）
+  isPerCapita: false,   // 人口1,000人あたり換算モード（false: 実測値, true: 人口1,000人あたり）
   mapStyle: "choropleth",  // 作図形式: "choropleth" (エリア塗り分け) または "bubble" (バブル表示)
   activePalette: "blue",
   filteredList: [],
@@ -184,7 +184,7 @@ function isAlreadyPerCapitaOrRate(varItem) {
 function getEffectiveData(varItem) {
   if (!varItem) return { data: {}, unit: "", isPerCapita: false };
 
-  // 比率・単位あたり指標の場合は二重補正を防ぐため常に原数値（実測値）
+  // 比率・単位あたり指標の場合は二重換算を防ぐため常に原数値（実測値）
   if (!state.isPerCapita || isAlreadyPerCapitaOrRate(varItem)) {
     return {
       data: varItem.data,
@@ -1359,14 +1359,14 @@ function initUI() {
     filterVariables();
   });
 
-  // 人口補正（率化）ボタンスイッチ
+  // 人口あたり換算ボタンスイッチ
   const btnModeRaw = document.getElementById("btn-mode-raw");
   const btnMode1000 = document.getElementById("btn-mode-1000");
 
   function setPerCapitaMode(isPerCapita) {
     const currentVar = STATS_DATA.find(v => v.id === state.activeVarId);
     if (isPerCapita && isAlreadyPerCapitaOrRate(currentVar)) {
-      return; // 単位あたり・比率指標は人口補正不可
+      return; // 単位あたり・比率指標は人口あたり換算不可
     }
     state.isPerCapita = isPerCapita;
     btnModeRaw.classList.toggle("active", !isPerCapita);
@@ -1572,7 +1572,7 @@ function initUI() {
   selectVariable(state.activeVarId, true);
 }
 
-// ステップ2の人口補正UI（ボタン活性状態・注意メッセージ）の同期制御
+// ステップ2の人口あたり換算UI（ボタン活性状態・注意メッセージ）の同期制御
 function syncPerCapitaUI(varItem) {
   const btnModeRaw = document.getElementById("btn-mode-raw");
   const btnMode1000 = document.getElementById("btn-mode-1000");
@@ -1588,21 +1588,21 @@ function syncPerCapitaUI(varItem) {
     btnMode1000.classList.remove("active");
     btnMode1000.disabled = true;
     btnMode1000.classList.add("disabled");
-    btnMode1000.title = "この指標はすでに単位あたり（比率・率・指数等）のため、人口補正はできません";
+    btnMode1000.title = "この指標はすでに単位あたり（比率・率・指数等）のため、人口あたり換算はできません";
     if (noteEl) {
       noteEl.classList.add("rate-locked");
-      noteEl.innerHTML = `<i class="fa-solid fa-circle-info"></i> ※この指標はすでに単位あたり（比率）データのため、人口補正は不要です`;
+      noteEl.innerHTML = `<i class="fa-solid fa-circle-info"></i> ※この指標はすでに単位あたり（比率）データのため、人口あたり換算は不要です`;
     }
   } else {
     // 通常実数指標の場合：活性化
     btnMode1000.disabled = false;
     btnMode1000.classList.remove("disabled");
-    btnMode1000.title = "令和7年国勢調査人口で割って1,000人あたりに変換します";
+    btnMode1000.title = "令和7年国勢調査確定人口を基準に、人口1,000人あたりに換算します";
     btnModeRaw.classList.toggle("active", !state.isPerCapita);
     btnMode1000.classList.toggle("active", state.isPerCapita);
     if (noteEl) {
       noteEl.classList.remove("rate-locked");
-      noteEl.innerHTML = `※令和7年(2025年)国勢調査人口を用いて自治体の人口規模差を補正します`;
+      noteEl.innerHTML = `※令和7年(2025年)国勢調査確定人口を基準に、人口1,000人あたりに換算します`;
     }
   }
 }
@@ -2414,7 +2414,7 @@ function openReportModal() {
   let sourceText = currentVar.source || "令和8年 青森県統計年鑑";
   sourceText = sourceText.replace(/\u3000/g, " ");
   if (state.isPerCapita) {
-    sourceText += "（人口補正: 令和7年国勢調査）";
+    sourceText += "（基準人口: 令和7年国勢調査）";
   }
   document.getElementById("rep-source-text").textContent = sourceText;
 
@@ -2447,7 +2447,7 @@ function openReportModal() {
   const statNoteEl = document.getElementById("rep-stat-note");
   if (statNoteEl) {
     statNoteEl.innerHTML = state.isPerCapita
-      ? `※平均値は各市町村の単純算術平均（人口加重なし）<br>※人口補正基準: 令和7年(2025年)国勢調査確定人口`
+      ? `※平均値は各市町村の単純算術平均（人口加重なし）<br>※算出基準人口: 令和7年(2025年)国勢調査確定人口`
       : "";
   }
 
