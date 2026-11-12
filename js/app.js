@@ -2219,10 +2219,11 @@ function renderReportSvgMap(varItem, breaks, paletteKey) {
       </g>
     `;
   } else {
-    for (let i = 0; i < legColors.length; i++) {
-      const curY = 20.5 + i * rowH;
-      const lbl = formatLegendLabel(breaks, i, legColors.length);
-      const classIdx = legColors.length - 1 - i;
+    // 画面凡例と同様に上＝大きい値・濃い色、下＝小さい値・薄い色で統一
+    for (let rowIdx = 0; rowIdx < legColors.length; rowIdx++) {
+      const curY = 20.5 + rowIdx * rowH;
+      const classIdx = legColors.length - 1 - rowIdx; // 上がClass 4 (濃い色)、下がClass 0 (薄い色)
+      const lbl = formatLegendLabel(breaks, classIdx, legColors.length);
       let curSymW = symW;
       let curSymH = symH;
       let curSymRx = symRx;
@@ -2238,7 +2239,7 @@ function renderReportSvgMap(varItem, breaks, paletteKey) {
       }
       legendSvg += `
         <g transform="translate(8, ${curY.toFixed(1)})">
-          <rect x="${curSymX}" y="${curSymY}" width="${curSymW}" height="${curSymH}" rx="${curSymRx}" fill="${legColors[i]}" stroke="#475569" stroke-width="0.5"/>
+          <rect x="${curSymX}" y="${curSymY}" width="${curSymW}" height="${curSymH}" rx="${curSymRx}" fill="${legColors[classIdx]}" stroke="#475569" stroke-width="0.5"/>
           <text x="15" y="5.8" font-size="5.4" font-weight="600" fill="#334155">${lbl}</text>
           <text x="${legW - 14}" y="5.8" text-anchor="end" font-size="4.8" font-weight="500" fill="#94a3b8">(${repClassCounts.counts[classIdx]})</text>
         </g>
