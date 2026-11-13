@@ -88,6 +88,7 @@ const state = {
   bubbleShowNames: true,      // バブル表示時の市町村名表示フラグ（デフォルトON）
   bubbleShowValues: true,     // バブル表示時の数値表示フラグ（デフォルトON）
   labelMarkersLayer: null,    // 市町村名・数値マーカー用レイヤーグループ
+  hoveredFeatureLayer: null,  // 現在ホバーされている市町村ポリゴンレイヤー
   currentBreaks: [],
   currentStats: null
 };
@@ -583,6 +584,7 @@ function initLeafletMap() {
   map.on("mouseout", function() {
     if (state.geoJsonLayer) {
       state.geoJsonLayer.eachLayer(l => {
+        l._isHovered = false;
         if (l._baseStyle) {
           l.setStyle(l._baseStyle);
         } else {
@@ -597,6 +599,7 @@ function initLeafletMap() {
         state.outerBorderLayer.bringToFront();
       }
     }
+    state.hoveredFeatureLayer = null;
     if (state.bubbleLayerGroup) {
       state.bubbleLayerGroup.eachLayer(l => {
         if (l.closeTooltip) l.closeTooltip();
@@ -604,7 +607,7 @@ function initLeafletMap() {
     }
   });
 
-  // 海上や背景余白にマウスがある場合、残存ツールチップを確実に消去（Chrome特有の八戸沖等の残留防止）
+  // 海上や背景余白にマウスがある場合、残存ツールチップや境界線ハイライトを確実に消去（Chrome特有の八戸沖等の残留防止）
   map.on("mousemove", function(e) {
     const target = e.originalEvent && e.originalEvent.target;
     // 市町村ポリゴン（leaflet-interactive な path 要素）またはバブルマーカー上にない場合
@@ -613,8 +616,28 @@ function initLeafletMap() {
       (target.closest && (target.closest(".bubble-marker-wrap") || target.closest(".leaflet-interactive")))
     );
     if (!isOverInteractive) {
+      let needsBorderReset = false;
+      if (state.hoveredFeatureLayer) {
+        needsBorderReset = true;
+        state.hoveredFeatureLayer._isHovered = false;
+        if (state.hoveredFeatureLayer._baseStyle) {
+          state.hoveredFeatureLayer.setStyle(state.hoveredFeatureLayer._baseStyle);
+        } else if (state.geoJsonLayer) {
+          state.geoJsonLayer.resetStyle(state.hoveredFeatureLayer);
+        }
+        state.hoveredFeatureLayer = null;
+      }
       if (state.geoJsonLayer) {
         state.geoJsonLayer.eachLayer(l => {
+          if (l._isHovered) {
+            needsBorderReset = true;
+            l._isHovered = false;
+            if (l._baseStyle) {
+              l.setStyle(l._baseStyle);
+            } else {
+              state.geoJsonLayer.resetStyle(l);
+            }
+          }
           if (l.isTooltipOpen && l.isTooltipOpen()) {
             l.closeTooltip();
             if (l.getTooltip && l.getTooltip() && l.getTooltip().getElement()) {
@@ -622,6 +645,9 @@ function initLeafletMap() {
             }
           }
         });
+        if (needsBorderReset && state.outerBorderLayer) {
+          state.outerBorderLayer.bringToFront();
+        }
       }
       if (state.bubbleLayerGroup) {
         state.bubbleLayerGroup.eachLayer(l => {
@@ -666,6 +692,7 @@ function updateLeafletMap() {
     state.leafletMap.removeLayer(state.outerBorderLayer);
     state.outerBorderLayer = null;
   }
+  state.hoveredFeatureLayer = null;
 
   const isBubble = (state.mapStyle === "bubble");
 
@@ -745,10 +772,22 @@ function updateLeafletMap() {
       layer.on({
         mouseover: function(e) {
           const l = e.target;
+          if (state.hoveredFeatureLayer && state.hoveredFeatureLayer !== l) {
+            state.hoveredFeatureLayer._isHovered = false;
+            if (state.hoveredFeatureLayer._baseStyle) {
+              state.hoveredFeatureLayer.setStyle(state.hoveredFeatureLayer._baseStyle);
+            } else if (state.geoJsonLayer) {
+              state.geoJsonLayer.resetStyle(state.hoveredFeatureLayer);
+            }
+          }
+          state.hoveredFeatureLayer = l;
+          l._isHovered = true;
+
           // 他の全ポリゴンのスタイル（白線等）とツールチップの残留を確実に一括リセット
           if (state.geoJsonLayer) {
             state.geoJsonLayer.eachLayer(other => {
               if (other !== l) {
+                other._isHovered = false;
                 if (other._baseStyle) {
                   other.setStyle(other._baseStyle);
                 } else {
@@ -782,6 +821,10 @@ function updateLeafletMap() {
         },
         mouseout: function(e) {
           const l = e.target;
+          l._isHovered = false;
+          if (state.hoveredFeatureLayer === l) {
+            state.hoveredFeatureLayer = null;
+          }
           // 元の境界線スタイル（白線等）に確実に復元
           if (l._baseStyle) {
             l.setStyle(l._baseStyle);
