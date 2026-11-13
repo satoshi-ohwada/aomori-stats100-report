@@ -8189,10 +8189,17 @@ function computeStats(effectiveObj) {
   // 降順ソート（1位〜40位）
   entries.sort((a, b) => b.val - a.val);
 
+  // 標準競技順位（タイ記録・同率順位に正しく対応: 同値なら同一順位、次はその人数分スキップ）
   const ranks = {};
-  entries.forEach((item, idx) => {
-    ranks[item.muni] = idx + 1;
-  });
+  const rankCounts = {};
+  let currentRank = 1;
+  for (let i = 0; i < entries.length; i++) {
+    if (i > 0 && entries[i].val < entries[i - 1].val) {
+      currentRank = i + 1;
+    }
+    ranks[entries[i].muni] = currentRank;
+    rankCounts[currentRank] = (rankCounts[currentRank] || 0) + 1;
+  }
 
   // 昇順数値リスト（パーセンタイル、KDE用）
   const numListAsc = [...entries].sort((a, b) => a.val - b.val).map(e => e.val);
@@ -8222,6 +8229,7 @@ function computeStats(effectiveObj) {
     sorted: entries,
     numList: numListAsc,
     ranks: ranks,
+    rankCounts: rankCounts,
     isPerCapita: effectiveObj.isPerCapita
   };
 }
@@ -8463,10 +8471,12 @@ function updateLeafletMap() {
       const muniName = feature.properties.name;
       const val = effective.data[muniName];
       const rank = stats.ranks[muniName];
+      const isTie = stats.rankCounts && stats.rankCounts[rank] > 1;
+      const rankPrefix = isTie ? "同率 第 " : "第 ";
 
       const totalValid = stats.count || 40;
       const rankScope = totalValid === 40 ? "全40市町村中" : `対象${totalValid}市町村中`;
-      const rankStr = rank ? `（${rankScope} 第 <strong style="color:#2563eb;">${rank}</strong> 位）` : "";
+      const rankStr = rank ? `（${rankScope} ${rankPrefix}<strong style="color:#2563eb;">${rank}</strong> 位）` : "";
       const valStr = val !== null && val !== undefined ? `${formatNum(val)} <span style="font-size:0.8rem; font-weight:normal;">${effective.unit}</span>` : "データなし";
 
       let popInfo = "";
@@ -8816,7 +8826,9 @@ function renderBubbleLayer(currentVar, breaks, stats) {
     // ツールチップ設定
     const totalValid = stats.count || 40;
     const rankScope = totalValid === 40 ? "全40市町村中" : `対象${totalValid}市町村中`;
-    const rankStr = node.rank ? `（${rankScope} 第 <strong style="color:#2563eb;">${node.rank}</strong> 位）` : "";
+    const isTie = stats.rankCounts && stats.rankCounts[node.rank] > 1;
+    const rankPrefix = isTie ? "同率 第 " : "第 ";
+    const rankStr = node.rank ? `（${rankScope} ${rankPrefix}<strong style="color:#2563eb;">${node.rank}</strong> 位）` : "";
     const valStr = node.val !== null && node.val !== undefined ? `${formatNum(node.val)} <span style="font-size:0.8rem; font-weight:normal;">${effective.unit}</span>` : "データなし";
     marker.bindTooltip(`
       <div class="tooltip-muni-name">${node.muni}</div>
@@ -9215,7 +9227,7 @@ function updateLegendUI(breaks, unit, stats = null) {
 
   const currentStats = stats || state.currentStats;
   const colors = PALETTES[state.activePalette].colors;
-  const unitStr = unit ? ` (${unit})` : "";
+  const unitBadge = unit ? ` <span style="font-weight:600; font-size:0.74rem; color:#1d4ed8; background:#eff6ff; padding:1px 5px; border-radius:3px; border:1px solid #bfdbfe;">[${unit}]</span>` : "";
 
   // 各階級に含まれる自治体数の集計
   const currentVar = STATS_DATA.find(v => v.id === state.activeVarId);
@@ -9223,11 +9235,11 @@ function updateLegendUI(breaks, unit, stats = null) {
   const classCountsInfo = effective ? computeClassCounts(effective.data, breaks, colors.length) : { counts: new Array(colors.length).fill(0), noData: 0 };
 
   // 凡例タイトルの動的設定（通常塗り分け / バブル段階 / バブル無段階）
-  let legendTitleText = `階級凡例${unitStr}`;
+  let legendTitleText = `階級凡例${unitBadge}`;
   if (state.mapStyle === "bubble") {
     legendTitleText = (state.bubbleSizeMode === "continuous")
-      ? `バブル凡例 (数値無段階)${unitStr}`
-      : `バブル凡例 (階級別)${unitStr}`;
+      ? `バブル凡例 (数値無段階)${unitBadge}`
+      : `バブル凡例 (階級別)${unitBadge}`;
   }
 
   // 1. 階級凡例行（上＝大きい値・濃い色、下＝小さい値・薄い色 で箱ひげ図と高さを完全連動）
@@ -9236,10 +9248,12 @@ function updateLegendUI(breaks, unit, stats = null) {
 
   if (isUniform) {
     const totalCount = classCountsInfo.counts[colors.length - 1] || currentStats.count || 40;
+    const rowLabel = formatLegendLabel(breaks, 0, colors.length);
+    const unitText = unit ? ` ${unit}` : "";
     classesHtml += `
-      <div class="legend-row">
+      <div class="legend-row" title="${rowLabel}${unitText}（${totalCount}市町村）">
         <div class="legend-color-box" style="background:${colors[colors.length - 1]}; border-color:#334155;"></div>
-        <span class="legend-label-text">${formatLegendLabel(breaks, 0, colors.length)}</span>
+        <span class="legend-label-text">${rowLabel}</span>
         <span class="legend-count">(${totalCount})</span>
       </div>
     `;
@@ -9250,11 +9264,15 @@ function updateLegendUI(breaks, unit, stats = null) {
         const bubbleBoxSize = 7.5 + i * 1.5; // 7.5px 〜 13.5px
         boxCustomStyle = `width:${bubbleBoxSize}px; height:${bubbleBoxSize}px; border-radius:50%;`;
       }
+      const rowLabel = formatLegendLabel(breaks, i, colors.length);
+      const rowCount = classCountsInfo.counts[i];
+      const unitText = unit ? ` ${unit}` : "";
+      const rowTitle = `${rowLabel}${unitText}（${rowCount}市町村）`;
       classesHtml += `
-        <div class="legend-row">
+        <div class="legend-row" title="${rowTitle}">
           <div class="legend-color-box" style="background:${colors[i]}; border-color:#334155; ${boxCustomStyle}"></div>
-          <span class="legend-label-text">${formatLegendLabel(breaks, i, colors.length)}</span>
-          <span class="legend-count">(${classCountsInfo.counts[i]})</span>
+          <span class="legend-label-text">${rowLabel}</span>
+          <span class="legend-count">(${rowCount})</span>
         </div>
       `;
     }
@@ -9262,7 +9280,7 @@ function updateLegendUI(breaks, unit, stats = null) {
 
   const noDataLabel = classCountsInfo.noData > 0 ? `(${classCountsInfo.noData})` : "(0)";
   classesHtml += `
-    <div class="legend-row" style="margin-top:2px; padding-top:2px; border-top:1px dashed #e2e8f0; color:#64748b;">
+    <div class="legend-row" title="データなし（${classCountsInfo.noData}市町村）" style="margin-top:2px; padding-top:2px; border-top:1px dashed #e2e8f0; color:#64748b;">
       <div class="legend-color-box" style="background:#e2e8f0; border-color:#94a3b8;"></div>
       <span class="legend-label-text">データなし</span>
       <span class="legend-count">${noDataLabel}</span>
@@ -9725,15 +9743,19 @@ function updateInfoPanels() {
 
   const topListEl = document.getElementById("float-rank-top");
   const top3 = stats.sorted.slice(0, 3);
-  topListEl.innerHTML = top3.map((item, idx) => `
+  topListEl.innerHTML = top3.map(item => {
+    const rank = stats.ranks[item.muni];
+    const badgeClass = rank <= 3 ? `rank-${rank}` : "";
+    return `
     <li class="rank-item-mini">
       <div>
-        <span class="rank-badge rank-${idx + 1}">${idx + 1}</span>
+        <span class="rank-badge ${badgeClass}">${rank}</span>
         <strong>${item.muni}</strong>
       </div>
       <span>${formatNum(item.val)}</span>
     </li>
-  `).join("");
+  `;
+  }).join("");
 
   const btmListEl = document.getElementById("float-rank-btm");
   const btm3 = stats.sorted.slice(-3).reverse();
@@ -10352,8 +10374,14 @@ function buildMuniVerticalBarChartSVG(sortedDescList, formatReportVal, axisUnitS
   }
 
   // 40本の垂直バーと市町村名ラベル
+  let currentRank = 1;
   sortedDescList.forEach((item, idx) => {
-    const rank = idx + 1;
+    if (idx > 0 && item.val < sortedDescList[idx - 1].val) {
+      currentRank = idx + 1;
+    }
+    const rank = currentRank;
+    const isTie = (idx > 0 && item.val === sortedDescList[idx - 1].val) || (idx < sortedDescList.length - 1 && item.val === sortedDescList[idx + 1].val);
+    const rankPrefix = isTie ? "同率 " : "";
     const name = item.muni;
     const val = item.val;
     const color = (val !== null && !isNaN(val) && breaks) ? getColorForValue(val, breaks, paletteKey) : "#cbd5e1";
@@ -10387,7 +10415,7 @@ function buildMuniVerticalBarChartSVG(sortedDescList, formatReportVal, axisUnitS
 
     // バー矩形（最小階級が白色でもくっきり見えるよう濃いスレートグレーで縁取り）
     svgInner += `<rect x="${x.toFixed(1)}" y="${barY.toFixed(1)}" width="${barW.toFixed(1)}" height="${barH.toFixed(1)}" rx="1.5" ry="1.5" fill="${color}" stroke="#334155" stroke-width="0.9">
-      <title>${rank}位: ${name} (${formatReportVal(val)})</title>
+      <title>${rankPrefix}${rank}位: ${name} (${formatReportVal(val)})</title>
     </rect>`;
 
     // 市町村名（日本語正立の縦書き描画: 各文字を上から下へ整然と配置）
