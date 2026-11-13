@@ -412,45 +412,57 @@
               </div>
             </section>
 
-            <!-- 中段: 基本統計サマリー & データ分布(KDE+ヒストグラム) (2カラム並列) -->
+            <!-- 中段: 基本統計サマリー & 上位5市町村 & データ分布 (3カラム並列) -->
             <section class="rep-portrait-mid">
               
-              <!-- 左側: 基本統計サマリー (2列×4行テーブル) -->
-              <div class="rep-card">
+              <!-- 左側: 基本統計サマリー (1列×6行テーブル) -->
+              <div class="rep-card rep-stat-card">
                 <div class="rep-card-title">
                   <i class="fa-solid fa-table-cells" style="color:#0f172a;"></i>
                   <span>基本統計サマリー</span>
-                  <span id="rep-stat-subtitle" style="font-size:0.68rem; font-weight:normal; color:#64748b;">(全県)</span>
+                  <span id="rep-stat-subtitle" class="rep-stat-subtitle">(全県)</span>
                 </div>
-                <table class="rep-stat-table">
+                <table class="rep-stat-table-compact">
                   <tbody>
                     <tr>
                       <th>対象数</th>
                       <td id="rep-stat-count">40 / 40</td>
+                    </tr>
+                    <tr>
                       <th>合　計</th>
                       <td id="rep-stat-sum">-</td>
                     </tr>
                     <tr>
                       <th>平均値</th>
                       <td id="rep-stat-mean">-</td>
+                    </tr>
+                    <tr>
                       <th>中央値</th>
                       <td id="rep-stat-median">-</td>
                     </tr>
                     <tr>
-                      <th>最　大</th>
-                      <td id="rep-stat-max">-</td>
+                      <th>標準偏差</th>
+                      <td id="rep-stat-sd">-</td>
+                    </tr>
+                    <tr>
                       <th>最　小</th>
                       <td id="rep-stat-min">-</td>
                     </tr>
-                    <tr>
-                      <th>標準偏差</th>
-                      <td id="rep-stat-sd">-</td>
-                      <th>四分位範囲</th>
-                      <td id="rep-stat-iqr">-</td>
-                    </tr>
                   </tbody>
                 </table>
-                <div id="rep-stat-note" style="font-size:0.64rem; color:#64748b; margin-top:3px; line-height:1.2;"></div>
+                <div id="rep-stat-note" style="font-size:0.62rem; color:#64748b; margin-top:3px; line-height:1.2;"></div>
+              </div>
+
+              <!-- 中央: 上位5市町村 (Top 5) -->
+              <div class="rep-card rep-top5-card">
+                <div class="rep-card-title">
+                  <i class="fa-solid fa-trophy" style="color:#d97706;"></i>
+                  <span>上位5市町村</span>
+                  <span class="rep-stat-subtitle">(Top 5)</span>
+                </div>
+                <div id="rep-top5-list-wrap" class="rep-top5-list-wrap">
+                  <!-- JSで動的生成（1位〜5位） -->
+                </div>
               </div>
 
               <!-- 右側: データ分布 (KDE + 度数ヒストグラム) -->

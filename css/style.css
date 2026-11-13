@@ -1607,11 +1607,11 @@ body {
   flex-shrink: 0;
 }
 
-/* 中段: 統計サマリー & データ分布（2カラム並列） */
+/* 中段: 統計サマリー & 上位5市町村 & データ分布（3カラム並列） */
 .rep-portrait-mid {
   display: grid;
-  grid-template-columns: 1.05fr 1fr;
-  gap: 8px;
+  grid-template-columns: 1.05fr 1fr 1.15fr;
+  gap: 6px;
   flex-shrink: 0;
   height: 52mm;
   min-height: 48mm;
@@ -1621,7 +1621,7 @@ body {
   background: #ffffff;
   border: 1px solid #64748b;
   border-radius: 4px;
-  padding: 5px 8px;
+  padding: 5px 7px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1639,7 +1639,146 @@ body {
   gap: 5px;
 }
 
-/* Statistics Table - Compact 2列×4行 (元のツール仕様) */
+.rep-stat-subtitle {
+  font-size: 0.65rem;
+  font-weight: normal;
+  color: #64748b;
+}
+
+/* 基本統計テーブル - コンパクト1列仕様 */
+.rep-stat-table-compact {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.65rem;
+  margin-top: 1px;
+}
+
+.rep-stat-table-compact tr {
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.rep-stat-table-compact tr:last-child {
+  border-bottom: none;
+}
+
+.rep-stat-table-compact th {
+  text-align: left;
+  padding: 2.2px 2px;
+  color: #475569;
+  font-weight: 600;
+  width: 36%;
+  white-space: nowrap;
+}
+
+.rep-stat-table-compact td {
+  text-align: right;
+  padding: 2.2px 2px;
+  color: #0f172a;
+  font-weight: 700;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  width: 64%;
+  white-space: nowrap;
+}
+
+.rep-stat-table-compact td .muni-tag {
+  font-size: 0.58rem;
+  color: #64748b;
+  font-weight: 600;
+  margin-left: 2px;
+}
+
+/* 上位5市町村 (Top 5) カード ＆ リスト */
+.rep-top5-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.rep-top5-list-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.rep-top5-list {
+  list-style: none;
+  padding: 0;
+  margin: 1px 0 0 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex: 1;
+}
+
+.rep-top5-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.8px 0;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.65rem;
+}
+
+.rep-top5-item:last-child {
+  border-bottom: none;
+}
+
+.rep-top5-left {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.rep-top5-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 2px;
+  border-radius: 3px;
+  font-size: 0.58rem;
+  font-weight: 800;
+  color: #ffffff;
+  background: #64748b;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.rep-top5-badge.rank-1 {
+  background: #d97706; /* ゴールド */
+}
+
+.rep-top5-badge.rank-2 {
+  background: #64748b; /* シルバー */
+}
+
+.rep-top5-badge.rank-3 {
+  background: #b45309; /* ブロンズ */
+}
+
+.rep-top5-badge.rank-other {
+  background: #94a3b8; /* スレート */
+}
+
+.rep-top5-muni {
+  font-weight: 700;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rep-top5-val {
+  font-weight: 700;
+  color: #1e293b;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  white-space: nowrap;
+  margin-left: 4px;
+}
+
+/* Statistics Table - Compact 2列×4行 (元のツール仕様 - 互換性維持) */
 .rep-stat-table {
   width: 100%;
   border-collapse: collapse;

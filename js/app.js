@@ -2497,7 +2497,66 @@ function buildReportDistributionSVG(nums, min, mean, median, max, width = 310, h
 }
 
 /* ==========================================================================
-   Municipalities Vertical Bar Chart Generator (40 Municipalities in Descending Order) - 元のツール仕様 (全正・正負混在・全負完全対応)
+   Chart Nice Scale Calculator (キリの良い数値でグラフスケールと目盛りを切る計算関数)
+   ========================================================================== */
+function calculateNiceChartScale(minVal, maxVal, targetTicks = 4) {
+  if (minVal === 0 && maxVal === 0) {
+    return { scaleMin: 0, scaleMax: 1, step: 0.25, ticks: [0, 0.25, 0.5, 0.75, 1.0] };
+  }
+  if (minVal === maxVal) {
+    if (minVal > 0) minVal = 0;
+    else if (minVal < 0) maxVal = 0;
+    else maxVal = 1;
+  }
+
+  const isAllPositive = (minVal >= 0);
+  const isAllNegative = (maxVal <= 0);
+
+  let tempMin = isAllPositive ? 0 : minVal;
+  let tempMax = isAllNegative ? 0 : maxVal;
+  let rawRange = tempMax - tempMin;
+  if (rawRange <= 0) rawRange = 1;
+
+  const rawStep = rawRange / targetTicks;
+  const exp = Math.floor(Math.log10(rawStep));
+  const base = Math.pow(10, exp);
+  const fraction = rawStep / base;
+
+  let niceStep;
+  if (fraction <= 1.25) niceStep = 1 * base;
+  else if (fraction <= 2.25) niceStep = 2 * base;
+  else if (fraction <= 3.5) niceStep = 2.5 * base;
+  else if (fraction <= 7.5) niceStep = 5 * base;
+  else niceStep = 10 * base;
+
+  let scaleMin = Math.floor(tempMin / niceStep) * niceStep;
+  let scaleMax = Math.ceil(tempMax / niceStep) * niceStep;
+
+  if (isAllPositive) {
+    scaleMin = 0;
+    if (scaleMax - maxVal < niceStep * 0.08) scaleMax += niceStep;
+  } else if (isAllNegative) {
+    scaleMax = 0;
+    if (minVal - scaleMin < niceStep * 0.08) scaleMin -= niceStep;
+  } else {
+    if (scaleMax - maxVal < niceStep * 0.08) scaleMax += niceStep;
+    if (minVal - scaleMin < niceStep * 0.08) scaleMin -= niceStep;
+  }
+
+  const decimals = Math.max(0, -Math.floor(Math.log10(niceStep)) + 2);
+
+  const ticks = [];
+  const numSteps = Math.round((scaleMax - scaleMin) / niceStep);
+  for (let i = 0; i <= numSteps; i++) {
+    const val = scaleMin + i * niceStep;
+    ticks.push(parseFloat(val.toFixed(decimals)));
+  }
+
+  return { scaleMin, scaleMax, step: niceStep, ticks };
+}
+
+/* ==========================================================================
+   Municipalities Vertical Bar Chart Generator (40 Municipalities in Descending Order) - キリの良いスケール完全対応版
    ========================================================================== */
 function buildMuniVerticalBarChartSVG(sortedDescList, formatReportVal, axisUnitStr, width = 630, height = 200, mean = null, breaks = null, paletteKey = null) {
   if (!sortedDescList || sortedDescList.length === 0) {
@@ -2507,11 +2566,16 @@ function buildMuniVerticalBarChartSVG(sortedDescList, formatReportVal, axisUnitS
   const validVals = sortedDescList.map(item => item.val).filter(v => v !== null && v !== undefined && !isNaN(v));
   const maxVal = validVals.length > 0 ? Math.max(...validVals) : 0;
   const minVal = validVals.length > 0 ? Math.min(...validVals) : 0;
-  const range = (maxVal - minVal) || 1;
+
+  // キリの良い数字でスケールを決定
+  const scale = calculateNiceChartScale(minVal, maxVal, 4);
+  const scaleMin = scale.scaleMin;
+  const scaleMax = scale.scaleMax;
+  const scaleRange = (scaleMax - scaleMin) || 1;
 
   const padL = 44;
   const padR = 12;
-  const padT = 18;
+  const padT = 16;
   const padB = 62; // 市町村名ラベル用領域
   const chartW = width - padL - padR;
   const chartH = height - padT - padB;
@@ -2520,47 +2584,30 @@ function buildMuniVerticalBarChartSVG(sortedDescList, formatReportVal, axisUnitS
   const colStep = chartW / n;
   const barW = Math.max(5, Math.min(10.5, colStep - 3.2));
 
-  const hasNeg = minVal < 0;
-  const hasPos = maxVal > 0;
-
-  // 原点0のY座標計算（全正、正負混在、全負の各ケースに完全対応）
-  let zeroY = padT + chartH;
-  if (hasNeg && hasPos) {
-    zeroY = padT + (maxVal / range) * chartH;
-  } else if (hasNeg && !hasPos) {
-    // 全て負値の場合、上端（padT）が0の基準
-    zeroY = padT;
-  } else {
-    // 全て正値の場合、下端（padT + chartH）が0の基準
-    zeroY = padT + chartH;
+  // Y座標変換関数（上端が scaleMax、下端が scaleMin）
+  function getY(v) {
+    return padT + ((scaleMax - v) / scaleRange) * chartH;
   }
+
+  const zeroY = getY(0);
 
   let svgInner = '';
 
-  // 水平グリッド線 ＆ Y軸ラベル (0%, 25%, 50%, 75%, 100%)
-  const numGridLines = 4;
-  for (let i = 0; i <= numGridLines; i++) {
-    const ratio = i / numGridLines;
-    const y = padT + chartH * (1 - ratio);
-    const gridVal = hasNeg ? (minVal + range * ratio) : (maxVal * ratio);
+  // 水平グリッド線 ＆ Y軸目盛りラベル（キリの良い数値で描画）
+  scale.ticks.forEach(tickVal => {
+    const y = getY(tickVal);
+    const isZero = (tickVal === 0);
+    const strokeColor = isZero ? "#64748b" : "#e2e8f0";
+    const strokeWidth = isZero ? 1.2 : 0.9;
+    const strokeDash = isZero ? "none" : "2,2";
 
-    svgInner += `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${padL + chartW}" y2="${y.toFixed(1)}" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="${i === 0 ? 'none' : '2,2'}" />`;
-    svgInner += `<text x="${padL - 5}" y="${(y + 3).toFixed(1)}" text-anchor="end" font-size="7.2" font-family="ui-monospace, monospace" fill="#64748b">${formatReportVal(gridVal)}</text>`;
-  }
-
-  // 正負混在時の原点0基準線
-  if (hasNeg && hasPos) {
-    svgInner += `<line x1="${padL}" y1="${zeroY.toFixed(1)}" x2="${padL + chartW}" y2="${zeroY.toFixed(1)}" stroke="#94a3b8" stroke-width="1.2" />`;
-  }
+    svgInner += `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${padL + chartW}" y2="${y.toFixed(1)}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-dasharray="${strokeDash}" />`;
+    svgInner += `<text x="${padL - 5}" y="${(y + 3).toFixed(1)}" text-anchor="end" font-size="7.2" font-family="ui-monospace, monospace" fill="#64748b">${formatReportVal(tickVal)}</text>`;
+  });
 
   // 平均値基準線
   if (mean !== null && !isNaN(mean)) {
-    let meanY;
-    if (hasNeg) {
-      meanY = padT + ((maxVal - mean) / range) * chartH;
-    } else {
-      meanY = padT + chartH - (mean / (maxVal || 1)) * chartH;
-    }
+    const meanY = getY(mean);
     if (meanY >= padT && meanY <= padT + chartH) {
       svgInner += `<line x1="${padL}" y1="${meanY.toFixed(1)}" x2="${padL + chartW}" y2="${meanY.toFixed(1)}" stroke="#dc2626" stroke-width="1.2" stroke-dasharray="4,2" />`;
       svgInner += `<text x="${padL + chartW - 2}" y="${(meanY - 3).toFixed(1)}" text-anchor="end" font-size="7.5" font-weight="700" fill="#dc2626" paint-order="stroke fill" stroke="#ffffff" stroke-width="2.5" stroke-linejoin="round">平均: ${formatReportVal(mean)}</text>`;
@@ -2587,25 +2634,15 @@ function buildMuniVerticalBarChartSVG(sortedDescList, formatReportVal, axisUnitS
     let barH = 0;
 
     if (val !== null && !isNaN(val)) {
-      if (!hasNeg) {
-        barH = maxVal > 0 ? (val / maxVal) * chartH : 0;
-        barY = padT + chartH - barH;
-      } else if (hasNeg && hasPos) {
-        if (val >= 0) {
-          barH = (val / range) * chartH;
-          barY = zeroY - barH;
-        } else {
-          barH = (Math.abs(val) / range) * chartH;
-          barY = zeroY;
-        }
+      if (val >= 0) {
+        barY = getY(val);
+        barH = zeroY - barY;
       } else {
-        // 全て負値の場合
-        barH = (Math.abs(val) / (Math.abs(minVal) || 1)) * chartH;
-        barY = padT;
+        barY = zeroY;
+        barH = getY(val) - zeroY;
       }
+      barH = Math.max(1.5, barH);
     }
-
-    barH = Math.max(1.5, barH);
 
     // バー矩形（最小階級が白色でもくっきり見えるよう濃いスレートグレーで縁取り）
     svgInner += `<rect x="${x.toFixed(1)}" y="${barY.toFixed(1)}" width="${barW.toFixed(1)}" height="${barH.toFixed(1)}" rx="1.5" ry="1.5" fill="${color}" stroke="#334155" stroke-width="0.9">
@@ -2657,21 +2694,35 @@ function openReportModal() {
   mapSvgWrapper.innerHTML = renderReportSvgMap(currentVar, breaks, state.activePalette);
 
   // 基本統計サマリー表
-  document.getElementById("rep-stat-count").textContent = `${stats.count} / 40`;
+  const statCountEl = document.getElementById("rep-stat-count");
+  if (statCountEl) statCountEl.textContent = `${stats.count} / 40`;
   
   // 比率データ（人口1,000人あたり）のときは合計値を対象外表示にする
-  if (state.isPerCapita) {
-    document.getElementById("rep-stat-sum").innerHTML = `- <span style="font-size:0.62rem; color:#64748b; font-weight:normal;">(対象外)</span>`;
-  } else {
-    document.getElementById("rep-stat-sum").textContent = formatNum(stats.sum);
+  const statSumEl = document.getElementById("rep-stat-sum");
+  if (statSumEl) {
+    if (state.isPerCapita) {
+      statSumEl.innerHTML = `- <span style="font-size:0.60rem; color:#64748b; font-weight:normal;">(対象外)</span>`;
+    } else {
+      statSumEl.textContent = formatNum(stats.sum);
+    }
   }
 
-  document.getElementById("rep-stat-mean").textContent = formatNum(stats.mean);
-  document.getElementById("rep-stat-median").textContent = formatNum(stats.median);
-  document.getElementById("rep-stat-max").innerHTML = `${formatNum(stats.max.val)}<span class="muni-tag">(${stats.max.muni})</span>`;
-  document.getElementById("rep-stat-min").innerHTML = `${formatNum(stats.min.val)}<span class="muni-tag">(${stats.min.muni})</span>`;
-  document.getElementById("rep-stat-sd").textContent = formatNum(stats.stdDev);
-  document.getElementById("rep-stat-iqr").textContent = formatNum(stats.iqr);
+  const statMeanEl = document.getElementById("rep-stat-mean");
+  if (statMeanEl) statMeanEl.textContent = formatNum(stats.mean);
+  const statMedianEl = document.getElementById("rep-stat-median");
+  if (statMedianEl) statMedianEl.textContent = formatNum(stats.median);
+
+  const statMaxEl = document.getElementById("rep-stat-max");
+  if (statMaxEl) statMaxEl.innerHTML = `${formatNum(stats.max.val)}<span class="muni-tag">(${stats.max.muni})</span>`;
+
+  const statMinEl = document.getElementById("rep-stat-min");
+  if (statMinEl) statMinEl.innerHTML = `${formatNum(stats.min.val)}<span class="muni-tag">(${stats.min.muni})</span>`;
+
+  const statSdEl = document.getElementById("rep-stat-sd");
+  if (statSdEl) statSdEl.textContent = formatNum(stats.stdDev);
+
+  const statIqrEl = document.getElementById("rep-stat-iqr");
+  if (statIqrEl) statIqrEl.textContent = formatNum(stats.iqr);
 
   const statSubEl = document.getElementById("rep-stat-subtitle");
   if (statSubEl) {
@@ -2681,8 +2732,37 @@ function openReportModal() {
   const statNoteEl = document.getElementById("rep-stat-note");
   if (statNoteEl) {
     statNoteEl.innerHTML = state.isPerCapita
-      ? `※平均値は各市町村の単純算術平均（人口加重なし）<br>※算出基準人口: 令和7年(2025年)国勢調査確定人口`
+      ? `※各市町村の単純平均<br>※基準人口: 令和7年国勢調査`
       : "";
+  }
+
+  // 中央: 上位5市町村 (Top 5) リスト生成
+  const top5ListWrap = document.getElementById("rep-top5-list-wrap");
+  if (top5ListWrap) {
+    const top5 = stats.sorted.slice(0, 5);
+    top5ListWrap.innerHTML = `
+      <ul class="rep-top5-list">
+        ${top5.map(item => {
+          const rank = stats.ranks[item.muni];
+          const isTie = stats.rankCounts && stats.rankCounts[rank] > 1;
+          let badgeClass = "rank-other";
+          if (rank === 1) badgeClass = "rank-1";
+          else if (rank === 2) badgeClass = "rank-2";
+          else if (rank === 3) badgeClass = "rank-3";
+
+          const rankTitle = isTie ? `同率 第 ${rank} 位` : `第 ${rank} 位`;
+          return `
+            <li class="rep-top5-item" title="${rankTitle}: ${item.muni} (${formatNum(item.val)} ${effective.unit || ''})">
+              <div class="rep-top5-left">
+                <span class="rep-top5-badge ${badgeClass}">${rank}</span>
+                <span class="rep-top5-muni">${item.muni}</span>
+              </div>
+              <span class="rep-top5-val">${formatNum(item.val)}</span>
+            </li>
+          `;
+        }).join("")}
+      </ul>
+    `;
   }
 
   // 中段右: データ分布 (KDE + ヒストグラム)
