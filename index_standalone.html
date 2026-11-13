@@ -748,6 +748,7 @@ body {
   border-radius: 2px;
   display: flex;
   overflow: hidden;
+  border: 1px solid #cbd5e1;
 }
 
 .swatch-color {
@@ -2257,17 +2258,6 @@ body {
             <span class="palette-name">ブルー</span>
           </button>
           
-          <button class="palette-btn" data-palette="green">
-            <div class="palette-swatch">
-              <span class="swatch-color" style="background:#ecfdf5;"></span>
-              <span class="swatch-color" style="background:#a7f3d0;"></span>
-              <span class="swatch-color" style="background:#34d399;"></span>
-              <span class="swatch-color" style="background:#059669;"></span>
-              <span class="swatch-color" style="background:#065f46;"></span>
-            </div>
-            <span class="palette-name">グリーン</span>
-          </button>
-          
           <button class="palette-btn" data-palette="warm">
             <div class="palette-swatch">
               <span class="swatch-color" style="background:#fff7ed;"></span>
@@ -2278,16 +2268,27 @@ body {
             </div>
             <span class="palette-name">オレンジ</span>
           </button>
-          
-          <button class="palette-btn" data-palette="purple">
+
+          <button class="palette-btn" data-palette="mono">
             <div class="palette-swatch">
-              <span class="swatch-color" style="background:#faf5ff;"></span>
-              <span class="swatch-color" style="background:#e9d5ff;"></span>
-              <span class="swatch-color" style="background:#c084fc;"></span>
-              <span class="swatch-color" style="background:#9333ea;"></span>
-              <span class="swatch-color" style="background:#581c87;"></span>
+              <span class="swatch-color" style="background:#f8fafc;"></span>
+              <span class="swatch-color" style="background:#cbd5e1;"></span>
+              <span class="swatch-color" style="background:#94a3b8;"></span>
+              <span class="swatch-color" style="background:#475569;"></span>
+              <span class="swatch-color" style="background:#0f172a;"></span>
             </div>
-            <span class="palette-name">パープル</span>
+            <span class="palette-name">モノクロ</span>
+          </button>
+          
+          <button class="palette-btn" data-palette="teal">
+            <div class="palette-swatch">
+              <span class="swatch-color" style="background:#f0fdfa;"></span>
+              <span class="swatch-color" style="background:#99f6e4;"></span>
+              <span class="swatch-color" style="background:#2dd4bf;"></span>
+              <span class="swatch-color" style="background:#0d9488;"></span>
+              <span class="swatch-color" style="background:#115e59;"></span>
+            </div>
+            <span class="palette-name">CUD青緑</span>
           </button>
         </div>
       </div>
@@ -8025,17 +8026,17 @@ const PALETTES = {
     name: "ブルー",
     colors: ["#eff6ff", "#bfdbfe", "#60a5fa", "#2563eb", "#1e40af"]
   },
-  green: {
-    name: "グリーン",
-    colors: ["#ecfdf5", "#a7f3d0", "#34d399", "#059669", "#065f46"]
-  },
   warm: {
-    name: "オレンジ/赤",
+    name: "オレンジ",
     colors: ["#fff7ed", "#fed7aa", "#fb923c", "#ea580c", "#9a3412"]
   },
-  purple: {
-    name: "パープル",
-    colors: ["#faf5ff", "#e9d5ff", "#c084fc", "#9333ea", "#581c87"]
+  mono: {
+    name: "モノクロ",
+    colors: ["#f8fafc", "#cbd5e1", "#94a3b8", "#475569", "#0f172a"]
+  },
+  teal: {
+    name: "CUD青緑",
+    colors: ["#f0fdfa", "#99f6e4", "#2dd4bf", "#0d9488", "#115e59"]
   }
 };
 
@@ -8508,7 +8509,7 @@ function getColorForValue(val, breaks, paletteKey) {
   if (val === null || val === undefined || isNaN(val)) {
     return "#e2e8f0";
   }
-  const colors = PALETTES[paletteKey].colors;
+  const colors = (PALETTES[paletteKey] || PALETTES.blue).colors;
   const k = colors.length;
 
   for (let i = 0; i < k; i++) {
@@ -8918,7 +8919,7 @@ function renderBubbleLayer(currentVar, breaks, stats) {
   state.bubbleLayerGroup = L.layerGroup().addTo(state.leafletMap);
 
   const effective = getEffectiveData(currentVar);
-  const colors = PALETTES[state.activePalette].colors;
+  const colors = (PALETTES[state.activePalette] || PALETTES.blue).colors;
   const numClasses = colors.length;
 
   // 1. 各自治体の初期ノード構築
@@ -9523,7 +9524,7 @@ function updateLegendUI(breaks, unit, stats = null) {
   legendEl.classList.toggle("bubble-mode", state.mapStyle === "bubble");
 
   const currentStats = stats || state.currentStats;
-  const colors = PALETTES[state.activePalette].colors;
+  const colors = (PALETTES[state.activePalette] || PALETTES.blue).colors;
   const unitBadge = unit ? ` <span style="font-weight:600; font-size:0.74rem; color:#1d4ed8; background:#eff6ff; padding:1px 5px; border-radius:3px; border:1px solid #bfdbfe;">[${unit}]</span>` : "";
 
   // 各階級に含まれる自治体数の集計
@@ -10165,7 +10166,7 @@ function renderReportSvgMap(varItem, breaks, paletteKey) {
   let labelsSvg = "";
   if (isBubble) {
     // --- バブル表示モード（SVGベクターレンダリング） ---
-    const repColors = PALETTES[paletteKey].colors;
+    const repColors = (PALETTES[paletteKey] || PALETTES.blue).colors;
     const numClasses = repColors.length;
 
     // 初期ノード作成
@@ -10349,7 +10350,7 @@ function renderReportSvgMap(varItem, breaks, paletteKey) {
   }
 
   // 4. 地図内 階級凡例（Map Inset Legend: 左上・北西日本海沖の広大なオープンスペースに配置）
-  const legColors = PALETTES[paletteKey].colors;
+  const legColors = (PALETTES[paletteKey] || PALETTES.blue).colors;
   const legUnitStr = effective.unit ? ` (${effective.unit})` : "";
   const isUniform = breaks && breaks.length >= 2 && breaks[0] === breaks[breaks.length - 1];
   const repClassCounts = computeClassCounts(effective.data, breaks, legColors.length);

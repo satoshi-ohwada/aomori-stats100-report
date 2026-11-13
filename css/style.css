@@ -732,6 +732,7 @@ body {
   border-radius: 2px;
   display: flex;
   overflow: hidden;
+  border: 1px solid #cbd5e1;
 }
 
 .swatch-color {

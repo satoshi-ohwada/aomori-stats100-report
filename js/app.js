@@ -54,17 +54,17 @@ const PALETTES = {
     name: "ブルー",
     colors: ["#eff6ff", "#bfdbfe", "#60a5fa", "#2563eb", "#1e40af"]
   },
-  green: {
-    name: "グリーン",
-    colors: ["#ecfdf5", "#a7f3d0", "#34d399", "#059669", "#065f46"]
-  },
   warm: {
-    name: "オレンジ/赤",
+    name: "オレンジ",
     colors: ["#fff7ed", "#fed7aa", "#fb923c", "#ea580c", "#9a3412"]
   },
-  purple: {
-    name: "パープル",
-    colors: ["#faf5ff", "#e9d5ff", "#c084fc", "#9333ea", "#581c87"]
+  mono: {
+    name: "モノクロ",
+    colors: ["#f8fafc", "#cbd5e1", "#94a3b8", "#475569", "#0f172a"]
+  },
+  teal: {
+    name: "CUD青緑",
+    colors: ["#f0fdfa", "#99f6e4", "#2dd4bf", "#0d9488", "#115e59"]
   }
 };
 
@@ -537,7 +537,7 @@ function getColorForValue(val, breaks, paletteKey) {
   if (val === null || val === undefined || isNaN(val)) {
     return "#e2e8f0";
   }
-  const colors = PALETTES[paletteKey].colors;
+  const colors = (PALETTES[paletteKey] || PALETTES.blue).colors;
   const k = colors.length;
 
   for (let i = 0; i < k; i++) {
@@ -947,7 +947,7 @@ function renderBubbleLayer(currentVar, breaks, stats) {
   state.bubbleLayerGroup = L.layerGroup().addTo(state.leafletMap);
 
   const effective = getEffectiveData(currentVar);
-  const colors = PALETTES[state.activePalette].colors;
+  const colors = (PALETTES[state.activePalette] || PALETTES.blue).colors;
   const numClasses = colors.length;
 
   // 1. 各自治体の初期ノード構築
@@ -1552,7 +1552,7 @@ function updateLegendUI(breaks, unit, stats = null) {
   legendEl.classList.toggle("bubble-mode", state.mapStyle === "bubble");
 
   const currentStats = stats || state.currentStats;
-  const colors = PALETTES[state.activePalette].colors;
+  const colors = (PALETTES[state.activePalette] || PALETTES.blue).colors;
   const unitBadge = unit ? ` <span style="font-weight:600; font-size:0.74rem; color:#1d4ed8; background:#eff6ff; padding:1px 5px; border-radius:3px; border:1px solid #bfdbfe;">[${unit}]</span>` : "";
 
   // 各階級に含まれる自治体数の集計
@@ -2194,7 +2194,7 @@ function renderReportSvgMap(varItem, breaks, paletteKey) {
   let labelsSvg = "";
   if (isBubble) {
     // --- バブル表示モード（SVGベクターレンダリング） ---
-    const repColors = PALETTES[paletteKey].colors;
+    const repColors = (PALETTES[paletteKey] || PALETTES.blue).colors;
     const numClasses = repColors.length;
 
     // 初期ノード作成
@@ -2378,7 +2378,7 @@ function renderReportSvgMap(varItem, breaks, paletteKey) {
   }
 
   // 4. 地図内 階級凡例（Map Inset Legend: 左上・北西日本海沖の広大なオープンスペースに配置）
-  const legColors = PALETTES[paletteKey].colors;
+  const legColors = (PALETTES[paletteKey] || PALETTES.blue).colors;
   const legUnitStr = effective.unit ? ` (${effective.unit})` : "";
   const isUniform = breaks && breaks.length >= 2 && breaks[0] === breaks[breaks.length - 1];
   const repClassCounts = computeClassCounts(effective.data, breaks, legColors.length);
