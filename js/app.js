@@ -579,12 +579,20 @@ function initLeafletMap() {
   legend.addTo(map);
   state.legendControl = legend;
 
-  // 地図外へカーソルが外れた際に残留したツールチップを確実に全消去
+  // 地図外へカーソルが外れた際に残留したハイライトやツールチップを確実に全消去
   map.on("mouseout", function() {
     if (state.geoJsonLayer) {
       state.geoJsonLayer.eachLayer(l => {
+        if (l._baseStyle) {
+          l.setStyle(l._baseStyle);
+        } else {
+          state.geoJsonLayer.resetStyle(l);
+        }
         if (l.closeTooltip && l.isTooltipOpen && l.isTooltipOpen()) l.closeTooltip();
       });
+      if (state.outerBorderLayer) {
+        state.outerBorderLayer.bringToFront();
+      }
     }
     if (state.bubbleLayerGroup) {
       state.bubbleLayerGroup.eachLayer(l => {
@@ -668,6 +676,17 @@ function updateLeafletMap() {
       const isTie = stats.rankCounts && stats.rankCounts[rank] > 1;
       const rankPrefix = isTie ? "同率 第 " : "第 ";
 
+      // 基本スタイル（白線または濃色境界線）をレイヤー自身に保持して確実な復元を保証
+      const fillColor = getColorForValue(val, breaks, state.activePalette);
+      const strokeInfo = getBorderStrokeForFeature(fillColor);
+      layer._baseStyle = {
+        fillColor: fillColor,
+        fillOpacity: 0.92,
+        color: strokeInfo.color,
+        weight: strokeInfo.weight,
+        opacity: 0.95
+      };
+
       const totalValid = stats.count || 40;
       const rankScope = totalValid === 40 ? "全40市町村中" : `対象${totalValid}市町村中`;
       const rankStr = rank ? `（${rankScope} ${rankPrefix}<strong style="color:#2563eb;">${rank}</strong> 位）` : "";
@@ -694,14 +713,22 @@ function updateLeafletMap() {
       layer.on({
         mouseover: function(e) {
           const l = e.target;
-          // 前のポリゴンのツールチップが残っていたら確実に消去
+          // 他の全ポリゴンのスタイル（白線等）とツールチップの残留を確実に一括リセット
           if (state.geoJsonLayer) {
             state.geoJsonLayer.eachLayer(other => {
-              if (other !== l && other.closeTooltip && other.isTooltipOpen && other.isTooltipOpen()) {
-                other.closeTooltip();
+              if (other !== l) {
+                if (other._baseStyle) {
+                  other.setStyle(other._baseStyle);
+                } else {
+                  state.geoJsonLayer.resetStyle(other);
+                }
+                if (other.closeTooltip && other.isTooltipOpen && other.isTooltipOpen()) {
+                  other.closeTooltip();
+                }
               }
             });
           }
+          // 現在ホバーされたポリゴンをハイライト（黒紺枠）
           l.setStyle({
             weight: 2.2,
             color: "#1e293b",
@@ -716,7 +743,12 @@ function updateLeafletMap() {
         },
         mouseout: function(e) {
           const l = e.target;
-          state.geoJsonLayer.resetStyle(l);
+          // 元の境界線スタイル（白線等）に確実に復元
+          if (l._baseStyle) {
+            l.setStyle(l._baseStyle);
+          } else {
+            state.geoJsonLayer.resetStyle(l);
+          }
           if (l.closeTooltip) {
             l.closeTooltip(); // 確実にツールチップを消去
           }
