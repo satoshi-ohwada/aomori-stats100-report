@@ -588,7 +588,10 @@ function initLeafletMap() {
         } else {
           state.geoJsonLayer.resetStyle(l);
         }
-        if (l.closeTooltip && l.isTooltipOpen && l.isTooltipOpen()) l.closeTooltip();
+        if (l.closeTooltip) l.closeTooltip();
+        if (l.getTooltip && l.getTooltip() && l.getTooltip().getElement()) {
+          l.getTooltip().getElement().style.display = "none";
+        }
       });
       if (state.outerBorderLayer) {
         state.outerBorderLayer.bringToFront();
@@ -596,8 +599,37 @@ function initLeafletMap() {
     }
     if (state.bubbleLayerGroup) {
       state.bubbleLayerGroup.eachLayer(l => {
-        if (l.closeTooltip && l.isTooltipOpen && l.isTooltipOpen()) l.closeTooltip();
+        if (l.closeTooltip) l.closeTooltip();
       });
+    }
+  });
+
+  // 海上や背景余白にマウスがある場合、残存ツールチップを確実に消去（Chrome特有の八戸沖等の残留防止）
+  map.on("mousemove", function(e) {
+    const target = e.originalEvent && e.originalEvent.target;
+    // 市町村ポリゴン（leaflet-interactive な path 要素）またはバブルマーカー上にない場合
+    const isOverInteractive = target && (
+      (target.tagName === "path" && target.classList && target.classList.contains("leaflet-interactive")) ||
+      (target.closest && (target.closest(".bubble-marker-wrap") || target.closest(".leaflet-interactive")))
+    );
+    if (!isOverInteractive) {
+      if (state.geoJsonLayer) {
+        state.geoJsonLayer.eachLayer(l => {
+          if (l.isTooltipOpen && l.isTooltipOpen()) {
+            l.closeTooltip();
+            if (l.getTooltip && l.getTooltip() && l.getTooltip().getElement()) {
+              l.getTooltip().getElement().style.display = "none";
+            }
+          }
+        });
+      }
+      if (state.bubbleLayerGroup) {
+        state.bubbleLayerGroup.eachLayer(l => {
+          if (l.isTooltipOpen && l.isTooltipOpen()) {
+            l.closeTooltip();
+          }
+        });
+      }
     }
   });
 }
@@ -722,8 +754,11 @@ function updateLeafletMap() {
                 } else {
                   state.geoJsonLayer.resetStyle(other);
                 }
-                if (other.closeTooltip && other.isTooltipOpen && other.isTooltipOpen()) {
+                if (other.closeTooltip) {
                   other.closeTooltip();
+                }
+                if (other.getTooltip && other.getTooltip() && other.getTooltip().getElement()) {
+                  other.getTooltip().getElement().style.display = "none";
                 }
               }
             });
@@ -734,6 +769,10 @@ function updateLeafletMap() {
             color: "#1e293b",
             fillOpacity: 0.96
           });
+          // ツールチップ要素の表示を復元
+          if (l.getTooltip && l.getTooltip() && l.getTooltip().getElement()) {
+            l.getTooltip().getElement().style.display = "";
+          }
           if (!L.Browser.ie && !L.Browser.opera) {
             l.bringToFront();
             if (state.outerBorderLayer) {
@@ -749,8 +788,15 @@ function updateLeafletMap() {
           } else {
             state.geoJsonLayer.resetStyle(l);
           }
+          // 確実にツールチップを消去（Leafletレイヤー閉鎖 + マップレベル閉鎖 + DOM非表示化）
           if (l.closeTooltip) {
-            l.closeTooltip(); // 確実にツールチップを消去
+            l.closeTooltip();
+          }
+          if (state.leafletMap && l.getTooltip && l.getTooltip()) {
+            state.leafletMap.closeTooltip(l.getTooltip());
+          }
+          if (l.getTooltip && l.getTooltip() && l.getTooltip().getElement()) {
+            l.getTooltip().getElement().style.display = "none";
           }
           if (state.outerBorderLayer) {
             state.outerBorderLayer.bringToFront();
