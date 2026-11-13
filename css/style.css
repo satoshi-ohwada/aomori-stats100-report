@@ -1107,7 +1107,15 @@ body {
 .rank-2 { background: #e2e8f0; color: #475569; }
 .rank-3 { background: #ffedd5; color: #9a3412; }
 
-/* Custom Leaflet Tooltip */
+/* Custom Leaflet Tooltip (ポインタイベント無効化で残留・ゴースト化を100%防止) */
+.muni-tooltip,
+.leaflet-tooltip.muni-tooltip,
+.leaflet-tooltip-pane,
+.muni-tooltip * {
+  pointer-events: none !important;
+  user-select: none !important;
+}
+
 .muni-tooltip {
   background: #ffffff !important;
   color: #0f172a !important;

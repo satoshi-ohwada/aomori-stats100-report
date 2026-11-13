@@ -570,6 +570,20 @@ function initLeafletMap() {
   };
   legend.addTo(map);
   state.legendControl = legend;
+
+  // 地図外へカーソルが外れた際に残留したツールチップを確実に全消去
+  map.on("mouseout", function() {
+    if (state.geoJsonLayer) {
+      state.geoJsonLayer.eachLayer(l => {
+        if (l.closeTooltip && l.isTooltipOpen && l.isTooltipOpen()) l.closeTooltip();
+      });
+    }
+    if (state.bubbleLayerGroup) {
+      state.bubbleLayerGroup.eachLayer(l => {
+        if (l.closeTooltip && l.isTooltipOpen && l.isTooltipOpen()) l.closeTooltip();
+      });
+    }
+  });
 }
 
 function fitMapToContainer() {
@@ -637,6 +651,9 @@ function updateLeafletMap() {
       };
     },
     onEachFeature: function(feature, layer) {
+      // バブル表示時はバブルマーカー側でツールチップ・ホバーを処理するため、背景ポリゴンのイベントは登録しない
+      if (isBubble) return;
+
       const muniName = feature.properties.name;
       const val = effective.data[muniName];
       const rank = stats.ranks[muniName];
@@ -667,12 +684,20 @@ function updateLeafletMap() {
       layer.on({
         mouseover: function(e) {
           const l = e.target;
+          // 前のポリゴンのツールチップが残っていたら確実に消去
+          if (state.geoJsonLayer) {
+            state.geoJsonLayer.eachLayer(other => {
+              if (other !== l && other.closeTooltip && other.isTooltipOpen && other.isTooltipOpen()) {
+                other.closeTooltip();
+              }
+            });
+          }
           l.setStyle({
-            weight: isBubble ? 1.5 : 2.2,
-            color: isBubble ? "#94a3b8" : "#1e293b",
-            fillOpacity: isBubble ? 0.95 : 0.96
+            weight: 2.2,
+            color: "#1e293b",
+            fillOpacity: 0.96
           });
-          if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
+          if (!L.Browser.ie && !L.Browser.opera) {
             l.bringToFront();
             if (state.outerBorderLayer) {
               state.outerBorderLayer.bringToFront();
@@ -680,7 +705,11 @@ function updateLeafletMap() {
           }
         },
         mouseout: function(e) {
-          state.geoJsonLayer.resetStyle(e.target);
+          const l = e.target;
+          state.geoJsonLayer.resetStyle(l);
+          if (l.closeTooltip) {
+            l.closeTooltip(); // 確実にツールチップを消去
+          }
           if (state.outerBorderLayer) {
             state.outerBorderLayer.bringToFront();
           }
@@ -991,6 +1020,23 @@ function renderBubbleLayer(currentVar, breaks, stats) {
       className: "muni-tooltip",
       direction: "top",
       offset: [0, -node.r]
+    });
+
+    marker.on({
+      mouseover: function() {
+        if (state.bubbleLayerGroup) {
+          state.bubbleLayerGroup.eachLayer(other => {
+            if (other !== marker && other.closeTooltip && other.isTooltipOpen && other.isTooltipOpen()) {
+              other.closeTooltip();
+            }
+          });
+        }
+      },
+      mouseout: function() {
+        if (marker.closeTooltip) {
+          marker.closeTooltip();
+        }
+      }
     });
   });
 }
