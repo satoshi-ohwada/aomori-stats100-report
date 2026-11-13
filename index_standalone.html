@@ -8629,9 +8629,10 @@ function fitMapToContainer() {
   const bounds = state.geoJsonLayer.getBounds();
   
   // 右側凡例（幅約185px）と程よい間隔を保ちつつ、下北半島や八戸方面が重ならないよう東側パディングを設定
+  // 北側（上）も18px確保して下北半島北端（大間等）が窮屈にならないよう調整
   state.leafletMap.fitBounds(bounds, {
-    paddingTopLeft: [10, 10],      // [x(左), y(上)]
-    paddingBottomRight: [120, 10], // [x(右), y(下)]: 東側に約120pxのパディングを設けて凡例と心地よい間隔で配置
+    paddingTopLeft: [10, 18],      // [x(左), y(上)]
+    paddingBottomRight: [120, 12], // [x(右), y(下)]
     animate: false
   });
 }
@@ -8720,6 +8721,11 @@ function updateLeafletMap() {
         popInfo = `<div style="font-size:0.72rem; color:#64748b; margin-top:2px;">(実測値: ${formatNum(rawVal)} ${currentVar.unit || ''} / 2025年人口: ${formatNum(CENSUS_POPULATION_2025[muniName])}人)</div>`;
       }
 
+      // 下北半島北端（大間町・風間浦村・佐井村）は地図上端に近いため、ツールチップを下向きに表示して描画領域外へのはみ出しを防止
+      const isNorthernMuni = (muniName === "大間町" || muniName === "風間浦村" || muniName === "佐井村");
+      const tooltipDirection = isNorthernMuni ? "bottom" : "top";
+      const tooltipOffset = isNorthernMuni ? [0, 12] : [0, -10];
+
       layer.bindTooltip(`
         <div class="tooltip-muni-name">${muniName}</div>
         <div class="tooltip-val">${valStr}</div>
@@ -8728,8 +8734,8 @@ function updateLeafletMap() {
       `, {
         className: "muni-tooltip",
         sticky: true,
-        direction: "top",
-        offset: [0, -10]
+        direction: tooltipDirection,
+        offset: tooltipOffset
       });
 
       layer.on({
@@ -9108,14 +9114,19 @@ function renderBubbleLayer(currentVar, breaks, stats) {
     const rankPrefix = isTie ? "同率 第 " : "第 ";
     const rankStr = node.rank ? `（${rankScope} ${rankPrefix}<strong style="color:#2563eb;">${node.rank}</strong> 位）` : "";
     const valStr = node.val !== null && node.val !== undefined ? `${formatNum(node.val)} <span style="font-size:0.8rem; font-weight:normal;">${effective.unit}</span>` : "データなし";
+    // 下北半島北端（大間町・風間浦村・佐井村）は地図上端に近いため、ツールチップを下向きに表示して描画領域外へのはみ出しを防止
+    const isNorthernMuni = (node.muni === "大間町" || node.muni === "風間浦村" || node.muni === "佐井村");
+    const tooltipDirection = isNorthernMuni ? "bottom" : "top";
+    const tooltipOffset = isNorthernMuni ? [0, node.r + 4] : [0, -node.r];
+
     marker.bindTooltip(`
       <div class="tooltip-muni-name">${node.muni}</div>
       <div class="tooltip-val">${valStr}</div>
       <div class="tooltip-rank">${rankStr}</div>
     `, {
       className: "muni-tooltip",
-      direction: "top",
-      offset: [0, -node.r]
+      direction: tooltipDirection,
+      offset: tooltipOffset
     });
 
     marker.on({
