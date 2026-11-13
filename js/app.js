@@ -2538,9 +2538,14 @@ function buildMuniVerticalBarChartSVG(sortedDescList, formatReportVal, axisUnitS
       <title>${rank}位: ${name} (${formatReportVal(val)})</title>
     </rect>`;
 
-    // 市町村名（縦書き・90度回転で美しく下部に整列）
-    const labelY = padT + chartH + 7;
-    svgInner += `<text x="${cx.toFixed(1)}" y="${labelY}" transform="rotate(90, ${cx.toFixed(1)}, ${labelY})" text-anchor="start" font-size="8.2" font-weight="600" fill="#1e293b" letter-spacing="-0.02em">${name}</text>`;
+    // 市町村名（日本語正立の縦書き描画: 各文字を上から下へ整然と配置）
+    const labelStartY = padT + chartH + 9;
+    const charStepY = 9.0;
+    const nameChars = name.split("");
+    nameChars.forEach((ch, charIdx) => {
+      const cy = labelStartY + charIdx * charStepY;
+      svgInner += `<text x="${cx.toFixed(1)}" y="${cy.toFixed(1)}" text-anchor="middle" font-size="7.6" font-weight="600" fill="#1e293b">${ch}</text>`;
+    });
   });
 
   return `
