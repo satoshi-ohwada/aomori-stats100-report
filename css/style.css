@@ -1133,6 +1133,14 @@ body {
   font-size: 0.82rem !important;
 }
 
+/* ツールチップの引き出し（三角矢印）を非表示化：
+   マウスカーソル追従時に矢印がポインタや自治体とズレた方向を指してしまう違和感を完全に解消し、
+   すっきりとしたモダンなフローティングカードデザインとして統一 */
+.muni-tooltip:before,
+.leaflet-tooltip.muni-tooltip:before {
+  display: none !important;
+}
+
 .tooltip-muni-name {
   font-weight: 700;
   font-size: 0.9rem;
