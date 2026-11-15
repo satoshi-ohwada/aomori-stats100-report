@@ -1622,10 +1622,10 @@ body {
   flex-shrink: 0;
 }
 
-/* 中段: 統計サマリー & 上位5市町村 & データ分布（3カラム並列） */
+/* 中段: 統計サマリー & 上位10市町村 & データ分布（3カラム並列: データ分布を拡大） */
 .rep-portrait-mid {
   display: grid;
-  grid-template-columns: 1.05fr 1fr 1.15fr;
+  grid-template-columns: 0.8fr 0.8fr 1.6fr;
   gap: 6px;
   flex-shrink: 0;
   height: 52mm;

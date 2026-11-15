@@ -1638,10 +1638,10 @@ body {
   flex-shrink: 0;
 }
 
-/* 中段: 統計サマリー & 上位5市町村 & データ分布（3カラム並列） */
+/* 中段: 統計サマリー & 上位10市町村 & データ分布（3カラム並列: データ分布を拡大） */
 .rep-portrait-mid {
   display: grid;
-  grid-template-columns: 1.05fr 1fr 1.15fr;
+  grid-template-columns: 0.8fr 0.8fr 1.6fr;
   gap: 6px;
   flex-shrink: 0;
   height: 52mm;
@@ -10434,7 +10434,7 @@ function renderReportSvgMap(varItem, breaks, paletteKey) {
 /* ==========================================================================
    Distribution Chart Generator (Histogram & KDE) - 元のツール仕様 (極値・同値安全対応)
    ========================================================================== */
-function buildReportDistributionSVG(nums, min, mean, median, max, width = 310, height = 96, unitStr = "", formatValFn = null) {
+function buildReportDistributionSVG(nums, min, mean, median, max, width = 360, height = 125, unitStr = "", formatValFn = null) {
   if (!nums || nums.length < 3) {
     return `<svg width="${width}" height="${height}"><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="10" fill="#94a3b8">データ不足（3件以上必要）</text></svg>`;
   }
@@ -10502,8 +10502,8 @@ function buildReportDistributionSVG(nums, min, mean, median, max, width = 310, h
 
   const padL = 26;
   const padR = 12;
-  const padT = 16;
-  const padB = 14;
+  const padT = 18;
+  const padB = 16;
   const chartW = width - padL - padR;
   const chartH = height - padT - padB;
 
@@ -10521,9 +10521,9 @@ function buildReportDistributionSVG(nums, min, mean, median, max, width = 310, h
   svgInner += `<line x1="${padL}" y1="${padT}" x2="${padL + chartW}" y2="${padT}" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="2,2" />`;
 
   // Y軸度数ラベル
-  svgInner += `<text x="${padL - 4}" y="${padT + chartH + 3}" font-size="7" fill="#475569" text-anchor="end">0</text>`;
-  svgInner += `<text x="${padL - 4}" y="${(midY + 3).toFixed(1)}" font-size="7" fill="#475569" text-anchor="end">${midCount}</text>`;
-  svgInner += `<text x="${padL - 4}" y="${padT + 3}" font-size="7" fill="#475569" text-anchor="end">${yMax}</text>`;
+  svgInner += `<text x="${padL - 4}" y="${padT + chartH + 3}" font-size="7.5" fill="#475569" text-anchor="end">0</text>`;
+  svgInner += `<text x="${padL - 4}" y="${(midY + 3).toFixed(1)}" font-size="7.5" fill="#475569" text-anchor="end">${midCount}</text>`;
+  svgInner += `<text x="${padL - 4}" y="${padT + 3}" font-size="7.5" fill="#475569" text-anchor="end">${yMax}</text>`;
 
   // 2. ヒストグラムの描画
   const barWidth = chartW / numBins;
@@ -10535,7 +10535,7 @@ function buildReportDistributionSVG(nums, min, mean, median, max, width = 310, h
 
     svgInner += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${barH.toFixed(1)}" fill="#f1f5f9" stroke="#334155" stroke-width="1.1" rx="1" />`;
     if (count > 0) {
-      svgInner += `<text x="${(x + w / 2).toFixed(1)}" y="${(y - 2).toFixed(1)}" font-size="7.5" fill="#0f172a" text-anchor="middle" font-weight="700">${count}</text>`;
+      svgInner += `<text x="${(x + w / 2).toFixed(1)}" y="${(y - 2).toFixed(1)}" font-size="7.8" fill="#0f172a" text-anchor="middle" font-weight="700">${count}</text>`;
     }
   });
 
@@ -10547,7 +10547,7 @@ function buildReportDistributionSVG(nums, min, mean, median, max, width = 310, h
     pathD += `${idx === 0 ? '' : 'L '}${x.toFixed(1)},${y.toFixed(1)} `;
   });
 
-  svgInner += `<path d="${pathD}" fill="none" stroke="#0f172a" stroke-width="1.8" stroke-linejoin="round" />`;
+  svgInner += `<path d="${pathD}" fill="none" stroke="#0f172a" stroke-width="2.0" stroke-linejoin="round" />`;
 
   // 4. 平均値・中央値のリファレンス垂直線
   const meanX = padL + Math.max(0, Math.min(1, (mean - min) / range)) * chartW;
@@ -10584,19 +10584,19 @@ function buildReportDistributionSVG(nums, min, mean, median, max, width = 310, h
 
   // 平均値線（黒破線）
   svgInner += `<line x1="${meanX.toFixed(1)}" y1="${padT}" x2="${meanX.toFixed(1)}" y2="${padT + chartH}" stroke="#0f172a" stroke-width="1.3" stroke-dasharray="3,2" />`;
-  svgInner += `<text x="${meanX.toFixed(1)}" y="${meanY}" font-size="7" fill="#0f172a" text-anchor="${meanAnchor}" font-weight="700" paint-order="stroke fill" stroke="#ffffff" stroke-width="2.2" stroke-linejoin="round">平均:${valFmt(mean)}</text>`;
+  svgInner += `<text x="${meanX.toFixed(1)}" y="${meanY}" font-size="7.5" fill="#0f172a" text-anchor="${meanAnchor}" font-weight="700" paint-order="stroke fill" stroke="#ffffff" stroke-width="2.2" stroke-linejoin="round">平均:${valFmt(mean)}</text>`;
 
   // 中央値線（濃灰破線）
   svgInner += `<line x1="${medianX.toFixed(1)}" y1="${padT}" x2="${medianX.toFixed(1)}" y2="${padT + chartH}" stroke="#475569" stroke-width="1.3" stroke-dasharray="2,2" />`;
-  svgInner += `<text x="${medianX.toFixed(1)}" y="${medianY}" font-size="7" fill="#475569" text-anchor="${medianAnchor}" font-weight="700" paint-order="stroke fill" stroke="#ffffff" stroke-width="2.2" stroke-linejoin="round">中央:${valFmt(median)}</text>`;
+  svgInner += `<text x="${medianX.toFixed(1)}" y="${medianY}" font-size="7.5" fill="#475569" text-anchor="${medianAnchor}" font-weight="700" paint-order="stroke fill" stroke="#ffffff" stroke-width="2.2" stroke-linejoin="round">中央:${valFmt(median)}</text>`;
 
   // 5. X軸目盛りラベル
   const unitLabel = unitStr ? ` (${unitStr})` : '';
-  svgInner += `<text x="${padL}" y="${height - 2}" text-anchor="start" font-size="6.8" font-weight="600" fill="#334155">最小: ${valFmt(min)}${unitLabel}</text>`;
-  svgInner += `<text x="${padL + chartW}" y="${height - 2}" text-anchor="end" font-size="6.8" font-weight="600" fill="#334155">最大: ${valFmt(max)}${unitLabel}</text>`;
+  svgInner += `<text x="${padL}" y="${height - 2}" text-anchor="start" font-size="7.2" font-weight="600" fill="#334155">最小: ${valFmt(min)}${unitLabel}</text>`;
+  svgInner += `<text x="${padL + chartW}" y="${height - 2}" text-anchor="end" font-size="7.2" font-weight="600" fill="#334155">最大: ${valFmt(max)}${unitLabel}</text>`;
 
   return `
-  <svg viewBox="0 0 ${width} ${height}" width="100%" height="${height}" style="overflow:visible; display:block;">
+  <svg viewBox="0 0 ${width} ${height}" width="100%" height="100%" style="overflow:visible; display:block; max-height:100%;">
     ${svgInner}
   </svg>`;
 }
@@ -10877,7 +10877,7 @@ function openReportModal() {
   }
   const distSvgWrap = document.getElementById("rep-dist-render-target");
   if (distSvgWrap) {
-    distSvgWrap.innerHTML = buildReportDistributionSVG(stats.numList, stats.min.val, stats.mean, stats.median, stats.max.val, 310, 96, effective.unit, formatNum);
+    distSvgWrap.innerHTML = buildReportDistributionSVG(stats.numList, stats.min.val, stats.mean, stats.median, stats.max.val, 360, 125, effective.unit, formatNum);
   }
 
   // 下段: 40市町村 棒グラフ (多い順)
