@@ -2868,13 +2868,13 @@ function openReportModal() {
       : "";
   }
 
-  // 中央: 上位5市町村 (Top 5) リスト生成
+  // 中央: 上位10市町村 (Top 10) リスト生成
   const top5ListWrap = document.getElementById("rep-top5-list-wrap");
   if (top5ListWrap) {
-    const top5 = stats.sorted.slice(0, 5);
+    const top10 = stats.sorted.slice(0, 10);
     top5ListWrap.innerHTML = `
       <ul class="rep-top5-list">
-        ${top5.map(item => {
+        ${top10.map(item => {
           const rank = stats.ranks[item.muni];
           const isTie = stats.rankCounts && stats.rankCounts[rank] > 1;
           let badgeClass = "rank-other";

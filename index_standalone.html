@@ -1745,9 +1745,10 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1.8px 0;
+  padding: 1px 0;
   border-bottom: 1px solid #f1f5f9;
-  font-size: 0.65rem;
+  font-size: 0.63rem;
+  line-height: 1.2;
 }
 
 .rep-top5-item:last-child {
@@ -1757,7 +1758,7 @@ body {
 .rep-top5-left {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   min-width: 0;
 }
 
@@ -1765,11 +1766,11 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 14px;
-  height: 14px;
+  min-width: 15px;
+  height: 13px;
   padding: 0 2px;
   border-radius: 3px;
-  font-size: 0.58rem;
+  font-size: 0.56rem;
   font-weight: 800;
   color: #ffffff;
   background: #64748b;
@@ -2541,15 +2542,15 @@ body {
                 <div id="rep-stat-note" style="font-size:0.62rem; color:#64748b; margin-top:3px; line-height:1.2;"></div>
               </div>
 
-              <!-- 中央: 上位5市町村 (Top 5) -->
+              <!-- 中央: 上位10市町村 (Top 10) -->
               <div class="rep-card rep-top5-card">
                 <div class="rep-card-title">
                   <i class="fa-solid fa-trophy" style="color:#d97706;"></i>
-                  <span>上位5市町村</span>
-                  <span class="rep-stat-subtitle">(Top 5)</span>
+                  <span>上位10市町村</span>
+                  <span class="rep-stat-subtitle">(Top 10)</span>
                 </div>
                 <div id="rep-top5-list-wrap" class="rep-top5-list-wrap">
-                  <!-- JSで動的生成（1位〜5位） -->
+                  <!-- JSで動的生成（1位〜10位） -->
                 </div>
               </div>
 
@@ -10840,13 +10841,13 @@ function openReportModal() {
       : "";
   }
 
-  // 中央: 上位5市町村 (Top 5) リスト生成
+  // 中央: 上位10市町村 (Top 10) リスト生成
   const top5ListWrap = document.getElementById("rep-top5-list-wrap");
   if (top5ListWrap) {
-    const top5 = stats.sorted.slice(0, 5);
+    const top10 = stats.sorted.slice(0, 10);
     top5ListWrap.innerHTML = `
       <ul class="rep-top5-list">
-        ${top5.map(item => {
+        ${top10.map(item => {
           const rank = stats.ranks[item.muni];
           const isTie = stats.rankCounts && stats.rankCounts[rank] > 1;
           let badgeClass = "rank-other";
