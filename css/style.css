@@ -1924,11 +1924,11 @@ body {
   min-height: 0;
 }
 
-/* 下段: 40市町村 棒グラフ (元のツール仕様) */
+/* 下段: 40市町村 棒グラフ (元のツール仕様 - 用紙領域を最大限活用) */
 .rep-bar-card.rep-portrait-bottom {
   flex-shrink: 0;
-  height: 72mm;
-  min-height: 68mm;
+  height: 78mm;
+  min-height: 70mm;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -2049,12 +2049,17 @@ body {
     box-sizing: border-box !important;
     visibility: visible !important;
     width: 194mm !important;
-    height: 272mm !important;
+    height: 278mm !important;
     max-width: 194mm !important;
-    max-height: 272mm !important;
+    max-height: 278mm !important;
     padding: 2mm 3.5mm !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
+  }
+
+  .rep-bar-card.rep-portrait-bottom {
+    height: 76mm !important;
+    min-height: 70mm !important;
   }
 
   #report-sheet * {

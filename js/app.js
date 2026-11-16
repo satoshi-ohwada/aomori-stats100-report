@@ -2688,9 +2688,9 @@ function calculateNiceChartScale(minVal, maxVal, targetTicks = 4) {
 }
 
 /* ==========================================================================
-   Municipalities Vertical Bar Chart Generator (40 Municipalities in Descending Order) - キリの良いスケール完全対応版
+   Municipalities Vertical Bar Chart Generator (40 Municipalities in Descending Order) - キリの良いスケール完全対応版 (用紙領域最大化)
    ========================================================================== */
-function buildMuniVerticalBarChartSVG(sortedDescList, formatReportVal, axisUnitStr, width = 630, height = 200, mean = null, breaks = null, paletteKey = null) {
+function buildMuniVerticalBarChartSVG(sortedDescList, formatReportVal, axisUnitStr, width = 700, height = 250, mean = null, breaks = null, paletteKey = null) {
   if (!sortedDescList || sortedDescList.length === 0) {
     return `<svg width="${width}" height="${height}"><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="11" fill="#94a3b8">有効なデータがありません</text></svg>`;
   }
@@ -2706,7 +2706,7 @@ function buildMuniVerticalBarChartSVG(sortedDescList, formatReportVal, axisUnitS
   const scaleRange = (scaleMax - scaleMin) || 1;
 
   const padL = 44;
-  const padR = 12;
+  const padR = 14;
   const padT = 16;
   const padB = 62; // 市町村名ラベル用領域
   const chartW = width - padL - padR;
@@ -2714,7 +2714,7 @@ function buildMuniVerticalBarChartSVG(sortedDescList, formatReportVal, axisUnitS
 
   const n = sortedDescList.length;
   const colStep = chartW / n;
-  const barW = Math.max(5, Math.min(10.5, colStep - 3.2));
+  const barW = Math.max(6, Math.min(12.5, colStep - 3.6));
 
   // Y座標変換関数（上端が scaleMax、下端が scaleMin）
   function getY(v) {
@@ -2734,7 +2734,7 @@ function buildMuniVerticalBarChartSVG(sortedDescList, formatReportVal, axisUnitS
     const strokeDash = isZero ? "none" : "2,2";
 
     svgInner += `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${padL + chartW}" y2="${y.toFixed(1)}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-dasharray="${strokeDash}" />`;
-    svgInner += `<text x="${padL - 5}" y="${(y + 3).toFixed(1)}" text-anchor="end" font-size="7.2" font-family="ui-monospace, monospace" fill="#64748b">${formatReportVal(tickVal)}</text>`;
+    svgInner += `<text x="${padL - 5}" y="${(y + 3).toFixed(1)}" text-anchor="end" font-size="7.6" font-family="ui-monospace, monospace" fill="#64748b">${formatReportVal(tickVal)}</text>`;
   });
 
   // 平均値基準線
@@ -2742,7 +2742,7 @@ function buildMuniVerticalBarChartSVG(sortedDescList, formatReportVal, axisUnitS
     const meanY = getY(mean);
     if (meanY >= padT && meanY <= padT + chartH) {
       svgInner += `<line x1="${padL}" y1="${meanY.toFixed(1)}" x2="${padL + chartW}" y2="${meanY.toFixed(1)}" stroke="#dc2626" stroke-width="1.2" stroke-dasharray="4,2" />`;
-      svgInner += `<text x="${padL + chartW - 2}" y="${(meanY - 3).toFixed(1)}" text-anchor="end" font-size="7.5" font-weight="700" fill="#dc2626" paint-order="stroke fill" stroke="#ffffff" stroke-width="2.5" stroke-linejoin="round">平均: ${formatReportVal(mean)}</text>`;
+      svgInner += `<text x="${padL + chartW - 2}" y="${(meanY - 3).toFixed(1)}" text-anchor="end" font-size="7.8" font-weight="700" fill="#dc2626" paint-order="stroke fill" stroke="#ffffff" stroke-width="2.5" stroke-linejoin="round">平均: ${formatReportVal(mean)}</text>`;
     }
   }
 
@@ -2783,16 +2783,16 @@ function buildMuniVerticalBarChartSVG(sortedDescList, formatReportVal, axisUnitS
 
     // 市町村名（日本語正立の縦書き描画: 各文字を上から下へ整然と配置）
     const labelStartY = padT + chartH + 9;
-    const charStepY = 9.0;
+    const charStepY = 9.2;
     const nameChars = name.split("");
     nameChars.forEach((ch, charIdx) => {
       const cy = labelStartY + charIdx * charStepY;
-      svgInner += `<text x="${cx.toFixed(1)}" y="${cy.toFixed(1)}" text-anchor="middle" font-size="7.6" font-weight="600" fill="#1e293b">${ch}</text>`;
+      svgInner += `<text x="${cx.toFixed(1)}" y="${cy.toFixed(1)}" text-anchor="middle" font-size="7.8" font-weight="600" fill="#1e293b">${ch}</text>`;
     });
   });
 
   return `
-    <svg viewBox="0 0 ${width} ${height}" width="100%" height="${height}" style="overflow:hidden; max-height:100%; display:block;">
+    <svg viewBox="0 0 ${width} ${height}" width="100%" height="100%" style="overflow:visible; max-height:100%; display:block;">
       ${svgInner}
     </svg>
   `;
@@ -2914,7 +2914,7 @@ function openReportModal() {
   }
   const vbarSvgWrap = document.getElementById("rep-vbar-render-target");
   if (vbarSvgWrap) {
-    vbarSvgWrap.innerHTML = buildMuniVerticalBarChartSVG(stats.sorted, formatNum, effective.unit, 630, 200, stats.mean, breaks, state.activePalette);
+    vbarSvgWrap.innerHTML = buildMuniVerticalBarChartSVG(stats.sorted, formatNum, effective.unit, 700, 250, stats.mean, breaks, state.activePalette);
   }
 
   const footerNote = document.getElementById("rep-footer-note");
